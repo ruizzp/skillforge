@@ -77,6 +77,9 @@
         .validate-btn:disabled { opacity: 0.5; cursor: default; }
         .validate-btn.done { border-color: var(--green); color: var(--green); }
         .validate-btn.err { border-color: var(--red); color: var(--red); }
+        .reset-btn { font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--text3); background: transparent; color: var(--text3); cursor: pointer; font-family: var(--mono); transition: border-color 0.15s, color 0.15s; }
+        .reset-btn:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+        .reset-btn:disabled { opacity: 0.4; cursor: default; }
 
         /* Events */
         .event-feed { font-size: 12px; color: var(--text2); max-height: 200px; overflow-y: auto; }
@@ -153,6 +156,10 @@
                           th:classappend="${entry.member.validatedSkills.contains(skill) ? ' validated' : ''}"
                           th:text="${skill}">skill</span>
                     <span th:if="${entry.member.validatedSkills.contains(skill)}" class="val-check">✓</span>
+                    <button th:if="${entry.member.validatedSkills.contains(skill)}"
+                            class="reset-btn"
+                            th:attr="data-hero-id=${entry.member.heroId},data-skill=${skill}"
+                            onclick="resetSkill(event, this)">×</button>
                     <button th:unless="${entry.member.validatedSkills.contains(skill)}"
                             class="validate-btn"
                             th:attr="data-hero-id=${entry.member.heroId},data-skill=${skill}"
@@ -290,6 +297,35 @@
         } catch {
             btn.textContent = 'falhou';
             btn.classList.add('err');
+            btn.disabled = false;
+        }
+    }
+
+    async function resetSkill(event, btn) {
+        event.stopPropagation();
+        const heroId = btn.dataset.heroId;
+        const skill  = btn.dataset.skill;
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/api/heroes/${heroId}/skills/${skill}/validate`, { method: 'DELETE' });
+            if (res.ok) {
+                const entry = btn.closest('.skill-entry');
+                entry.querySelector('.skill-pill-sm')?.classList.remove('validated');
+                entry.querySelector('.val-check')?.remove();
+                btn.remove();
+                // insere botão validar no lugar
+                const vBtn = document.createElement('button');
+                vBtn.className = 'validate-btn';
+                vBtn.dataset.heroId = heroId;
+                vBtn.dataset.skill  = skill;
+                vBtn.textContent    = 'validar';
+                vBtn.setAttribute('onclick', 'validateSkill(event, this)');
+                entry.appendChild(vBtn);
+                addEvent('RESET', `validação de "${skill}" removida para ${heroId}`);
+            } else {
+                btn.disabled = false;
+            }
+        } catch {
             btn.disabled = false;
         }
     }

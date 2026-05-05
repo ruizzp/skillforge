@@ -241,6 +241,14 @@ public class GitHubClient {
         postComment(issueNumber, comment);
     }
 
+    public void removeSkillValidation(int issueNumber, String skill) throws Exception {
+        requireToken("removeSkillValidation");
+        String label = "skill-validated:" + skill;
+        String url = "%s/repos/%s/%s/issues/%d/labels/%s"
+                .formatted(API, owner, repo, issueNumber, label.replace(":", "%3A"));
+        delete(url);
+    }
+
     // ── Parsing ─────────────────────────────────────────────────────────────
 
     private Optional<GuildMember> parseHero(JsonNode issue) {
@@ -339,6 +347,17 @@ public class GitHubClient {
         if (!token.isBlank()) builder.header("Authorization", "Bearer " + token);
         HttpResponse<String> response = http.send(builder.build(), HttpResponse.BodyHandlers.ofString());
         return mapper.readTree(response.body());
+    }
+
+    private void delete(String url) throws Exception {
+        var request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Accept", "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", "2022-11-28")
+                .header("Authorization", "Bearer " + token)
+                .DELETE()
+                .build();
+        http.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     private String post(String url, String body) throws Exception {

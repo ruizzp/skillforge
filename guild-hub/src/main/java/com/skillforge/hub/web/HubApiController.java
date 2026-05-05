@@ -108,6 +108,30 @@ public class HubApiController {
         ));
     }
 
+    @DeleteMapping("/heroes/{heroId}/skills/{skill}/validate")
+    public ResponseEntity<?> resetSkillValidation(
+            @PathVariable("heroId") String heroId,
+            @PathVariable("skill") String skill) {
+
+        return registry.getHeroById(heroId)
+                .map(hero -> {
+                    if (!hero.validatedSkills().contains(skill)) {
+                        return ResponseEntity.ok()
+                                .<Object>body(Map.of("message", "Skill '" + skill + "' não estava validada."));
+                    }
+                    try {
+                        github.removeSkillValidation(hero.issueNumber(), skill);
+                        registry.refresh();
+                        return ResponseEntity.ok()
+                                .<Object>body(Map.of("message", "Validação de '" + skill + "' removida."));
+                    } catch (Exception e) {
+                        return ResponseEntity.internalServerError()
+                                .<Object>body(Map.of("error", e.getMessage()));
+                    }
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/heroes/{heroId}/skills/{skill}/validate")
     public ResponseEntity<?> validateSkill(
             @PathVariable("heroId") String heroId,
