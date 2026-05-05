@@ -64,25 +64,33 @@ public class SolutionConsumer {
             return;
         }
 
-        Quest quest = questBoard.getQuests().stream()
-                .filter(q -> q.id().equals(msg.questId()))
-                .findFirst()
-                .orElse(null);
-        if (quest == null || quest.requiredSkills().isEmpty()) {
-            log.debug("Auto-validação ignorada: quest {} sem requiredSkills.", msg.questId());
-            return;
+        // probe:java:heroId — desafio enviado pelo endpoint /validate; usa skill do questId diretamente
+        List<String> skillsToValidate;
+        if (msg.questId().startsWith("probe:")) {
+            String[] parts = msg.questId().split(":", 3);
+            skillsToValidate = parts.length >= 2 ? List.of(parts[1]) : List.of();
+        } else {
+            Quest quest = questBoard.getQuests().stream()
+                    .filter(q -> q.id().equals(msg.questId()))
+                    .findFirst()
+                    .orElse(null);
+            if (quest == null || quest.requiredSkills().isEmpty()) {
+                log.debug("Auto-validação ignorada: quest {} sem requiredSkills.", msg.questId());
+                return;
+            }
+            skillsToValidate = quest.requiredSkills();
         }
 
         List<String> validated = new ArrayList<>();
-        for (String skill : quest.requiredSkills()) {
+        for (String skill : skillsToValidate) {
             if (!hero.skills().contains(skill)) continue;
             if (hero.validatedSkills().contains(skill)) continue;
             try {
                 github.validateSkill(hero.issueNumber(), skill, "guild-bot");
                 validated.add(skill);
-                log.info("Skill '{}' auto-validada para {} via quest {}.", skill, msg.heroId(), msg.questId());
+                log.info("Skill '{}' validada para {} via {}.", skill, msg.heroId(), msg.questId());
             } catch (Exception e) {
-                log.error("Falha ao auto-validar skill '{}' para {}: {}", skill, msg.heroId(), e.getMessage());
+                log.error("Falha ao validar skill '{}' para {}: {}", skill, msg.heroId(), e.getMessage());
             }
         }
 

@@ -78,6 +78,7 @@ Base: `http://localhost:8080/api`
 | `GET` | `/quests` | Lista quests (filtros opcionais) |
 | `POST` | `/quests` | Cria nova quest (requer GITHUB_TOKEN) |
 | `GET` | `/stats` | Estatísticas completas da guilda |
+| `POST` | `/heroes/{heroId}/skills/{skill}/validate` | Envia desafio AMQP ao herói; valida se resposta ≥ threshold |
 | `GET` | `/presence` | Status online/offline dos heróis em tempo real |
 | `GET` | `/health` | Health check |
 | `GET` | `/events` | SSE stream de eventos em tempo real |
@@ -109,6 +110,60 @@ Content-Type: application/json
 ```
 
 Cria um GitHub Issue com labels `quest`, `rare`, `xp:300`, `skill:java`, `skill:redis`.
+
+---
+
+## Validação de skills — fluxo completo
+
+Clicar em "validar" no dashboard **não** aplica o label imediatamente. O hub envia um desafio real ao herói via AMQP e só valida quando ele responder com confiança suficiente.
+
+```
+Dashboard  →  POST /api/heroes/{heroId}/skills/java/validate
+                └─ hub publica ProblemMessage questId="probe:java:{heroId}"
+                     └─ hero recebe (se tiver "java" em skills)
+                          └─ solve() → SolutionMessage(confidence=0.87)
+                               └─ SolutionConsumer detecta questId.startsWith("probe:")
+                                    └─ confidence ≥ 0.75?
+                                         ├─ sim → github.validateSkill() → label skill-validated:java
+                                         │         broadcast SKILL_AUTO_VALIDATED
+                                         │         dashboard atualiza botão → "✓ validada"
+                                         └─ não → sem ação (hero pode tentar de novo)
+```
+
+**Comportamento por estado:**
+
+| Situação | Resposta do endpoint | Ação no dashboard |
+|---|---|---|
+| Skill não declarada no manifest | `400 Bad Request` | Botão "erro" em vermelho |
+| Skill já validada | `200 OK` | Botão "✓ validada" imediatamente |
+| Desafio enviado | `202 Accepted` | Botão "aguardando..." até SSE chegar |
+| Herói offline / sem skill | Sem resposta AMQP | Botão fica "aguardando..." (timeout do broker) |
+
+O threshold padrão é `0.75` (75% de confiança). Configurável via `SKILL_CONFIDENCE_THRESHOLD`.
+
+---
+
+## Presença dos heróis
+
+O hub rastreia quais heróis estão online em tempo real via heartbeats AMQP.
+
+```
+Hero (ao subir, após 5s)  →  HeartbeatMessage(heroId, heroName, skills, timestamp)
+                                  └─ routing-key: "heartbeat"
+                                       └─ HeartbeatConsumer → HeroPresenceService
+                                            ├─ primeira vez: broadcast HERO_ONLINE
+                                            └─ atualiza timestamp
+
+HeroPresenceService (a cada 60s)
+  └─ verifica heróis sem heartbeat há mais de HEARTBEAT_TIMEOUT_MS
+       └─ remove do Set → broadcast HERO_OFFLINE
+```
+
+O dashboard mostra um **dot colorido** ao lado do XP de cada herói no leaderboard:
+- **Verde** (com glow) — herói online agora
+- **Cinza** — herói offline ou nunca conectado
+
+O estado inicial do dot é renderizado pelo Thymeleaf no page load (heróis já online antes da abertura do browser aparecem corretamente). Atualizações em tempo real chegam via SSE.
 
 ---
 

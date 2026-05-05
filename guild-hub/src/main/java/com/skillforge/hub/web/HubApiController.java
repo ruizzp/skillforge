@@ -111,8 +111,7 @@ public class HubApiController {
     @PostMapping("/heroes/{heroId}/skills/{skill}/validate")
     public ResponseEntity<?> validateSkill(
             @PathVariable("heroId") String heroId,
-            @PathVariable("skill") String skill,
-            @RequestParam(name = "validatedBy", defaultValue = "guild-master") String validatedBy) {
+            @PathVariable("skill") String skill) {
 
         return registry.getHeroById(heroId)
                 .map(hero -> {
@@ -122,20 +121,20 @@ public class HubApiController {
                     }
                     if (hero.validatedSkills().contains(skill)) {
                         return ResponseEntity.ok()
-                                .<Object>body(Map.of("message", "Skill '" + skill + "' já estava validada."));
+                                .<Object>body(Map.of("message", "já validada"));
                     }
-                    try {
-                        github.validateSkill(hero.issueNumber(), skill, validatedBy);
-                        registry.refresh();
-                        return ResponseEntity.ok()
-                                .<Object>body(Map.of(
-                                        "message", "Skill '" + skill + "' validada para " + heroId,
-                                        "issueNumber", hero.issueNumber()
-                                ));
-                    } catch (Exception e) {
-                        return ResponseEntity.internalServerError()
-                                .<Object>body(Map.of("error", e.getMessage()));
-                    }
+                    // Envia desafio real ao herói via AMQP; SolutionConsumer valida ao receber resposta
+                    String questId = "probe:" + skill + ":" + heroId;
+                    ProblemMessage probe = new ProblemMessage(
+                            questId,
+                            "Demonstre seu domínio de " + skill + " com um exemplo prático e objetivo.",
+                            List.of(skill),
+                            0,
+                            "skill-probe"
+                    );
+                    problemPublisher.publish(probe);
+                    return ResponseEntity.accepted()
+                            .<Object>body(Map.of("questId", questId, "message", "desafio enviado"));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
