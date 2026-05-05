@@ -2,12 +2,11 @@ package com.skillforge.hero.web;
 
 import com.skillforge.hero.domain.HeroManifest;
 import com.skillforge.hero.service.GuildService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.skillforge.hero.service.SolveService;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -15,10 +14,12 @@ import java.util.Map;
 public class HeroApiController {
 
     private final GuildService guild;
+    private final SolveService solver;
     private final long startTime = System.currentTimeMillis();
 
-    public HeroApiController(GuildService guild) {
-        this.guild = guild;
+    public HeroApiController(GuildService guild, SolveService solver) {
+        this.guild  = guild;
+        this.solver = solver;
     }
 
     @GetMapping("/health")
@@ -47,13 +48,19 @@ public class HeroApiController {
         );
     }
 
-    @GetMapping("/solve")
-    public ResponseEntity<Map<String, Object>> solve() {
-        // Placeholder — implemented per hero with Ollama
-        return ResponseEntity.ok(Map.of(
-                "result", "Hero not yet configured for solving. Implement /api/solve with your Ollama model.",
-                "confidence", 0.0,
-                "heroId", guild.getManifest().heroId()
-        ));
+    record SolveRequest(String problem, List<String> requiredSkills) {
+        SolveRequest { if (requiredSkills == null) requiredSkills = List.of(); }
+    }
+
+    @PostMapping("/solve")
+    public Map<String, Object> solve(@RequestBody SolveRequest req) {
+        var result = solver.solve(req.problem(), req.requiredSkills());
+        return Map.of(
+                "heroId",     guild.getManifest().heroId(),
+                "solution",   result.solution(),
+                "confidence", result.confidence(),
+                "model",      result.model(),
+                "solvedAt",   Instant.now().toString()
+        );
     }
 }
