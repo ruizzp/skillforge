@@ -7,6 +7,7 @@ public record GuildMember(
         String heroName,
         String heroClass,
         List<String> skills,
+        List<String> validatedSkills,
         int level,
         int xp,
         String specialty,

@@ -136,6 +136,13 @@ public class GitHubClient {
             List<String> skills = new ArrayList<>();
             manifest.path("skills").forEach(s -> skills.add(s.asText()));
 
+            List<String> validatedSkills = new ArrayList<>();
+            issue.path("labels").forEach(label -> {
+                String name = label.path("name").asText();
+                if (name.startsWith("skill-validated:"))
+                    validatedSkills.add(name.substring("skill-validated:".length()));
+            });
+
             JsonNode user = issue.path("user");
             String avatarUrl = user.path("avatar_url").asText("");
             String githubLogin = user.path("login").asText("");
@@ -145,6 +152,7 @@ public class GitHubClient {
                     manifest.path("heroName").asText(heroId),
                     manifest.path("heroClass").asText("Unknown"),
                     skills,
+                    validatedSkills,
                     manifest.path("level").asInt(1),
                     manifest.path("xp").asInt(0),
                     manifest.path("specialty").asText(""),

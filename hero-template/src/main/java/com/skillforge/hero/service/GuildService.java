@@ -61,6 +61,15 @@ public class GuildService {
         return members.get();
     }
 
+    public List<String> getValidatedSkills() {
+        String myId = manifest.get() != null ? manifest.get().heroId() : "";
+        return members.get().stream()
+                .filter(m -> m.heroId().equals(myId))
+                .findFirst()
+                .map(GuildMember::validatedSkills)
+                .orElse(List.of());
+    }
+
     public Map<QuestRarity, Long> getQuestCountByRarity() {
         return quests.get().stream()
                 .collect(Collectors.groupingBy(Quest::rarity, Collectors.counting()));
