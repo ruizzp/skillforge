@@ -147,6 +147,15 @@ public class GitHubClient {
             String avatarUrl = user.path("avatar_url").asText("");
             String githubLogin = user.path("login").asText("");
 
+            int xp = manifest.path("xp").asInt(0);
+            for (JsonNode label : issue.path("labels")) {
+                String name = label.path("name").asText();
+                if (name.startsWith("xp:")) {
+                    try { xp = Integer.parseInt(name.substring(3)); } catch (NumberFormatException ignored) {}
+                    break;
+                }
+            }
+
             return Optional.of(new GuildMember(
                     heroId,
                     manifest.path("heroName").asText(heroId),
@@ -154,7 +163,7 @@ public class GitHubClient {
                     skills,
                     validatedSkills,
                     manifest.path("level").asInt(1),
-                    manifest.path("xp").asInt(0),
+                    xp,
                     manifest.path("specialty").asText(""),
                     githubLogin,
                     avatarUrl

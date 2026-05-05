@@ -19,6 +19,7 @@ import java.util.*;
 public class GitHubClient {
 
     private static final String API = "https://api.github.com";
+    private static final int XP_PER_SKILL = 150;
 
     private final HttpClient http;
     private final ObjectMapper mapper;
@@ -237,16 +238,43 @@ public class GitHubClient {
 
     public void validateSkill(int issueNumber, String skill, String validatedBy) throws Exception {
         addLabel(issueNumber, "skill-validated:" + skill);
-        String comment = "✓ **Skill `%s` validada** por @%s.".formatted(skill, validatedBy);
+        updateXp(issueNumber, XP_PER_SKILL);
+        String comment = "✓ **Skill `%s` validada** por @%s. +%d XP".formatted(skill, validatedBy, XP_PER_SKILL);
         postComment(issueNumber, comment);
     }
 
     public void removeSkillValidation(int issueNumber, String skill) throws Exception {
         requireToken("removeSkillValidation");
         String label = "skill-validated:" + skill;
-        String url = "%s/repos/%s/%s/issues/%d/labels/%s"
-                .formatted(API, owner, repo, issueNumber, label.replace(":", "%3A"));
-        delete(url);
+        delete("%s/repos/%s/%s/issues/%d/labels/%s"
+                .formatted(API, owner, repo, issueNumber, label.replace(":", "%3A")));
+        updateXp(issueNumber, -XP_PER_SKILL);
+    }
+
+    public void addXp(int issueNumber, int amount) throws Exception {
+        updateXp(issueNumber, amount);
+    }
+
+    private void updateXp(int issueNumber, int delta) throws Exception {
+        requireToken("updateXp");
+        JsonNode issue = get("%s/repos/%s/%s/issues/%d".formatted(API, owner, repo, issueNumber));
+
+        int current = 0;
+        String existing = null;
+        for (JsonNode label : issue.path("labels")) {
+            String name = label.path("name").asText();
+            if (name.startsWith("xp:")) {
+                try { current = Integer.parseInt(name.substring(3)); } catch (NumberFormatException ignored) {}
+                existing = name;
+                break;
+            }
+        }
+
+        int newXp = Math.max(0, current + delta);
+        if (existing != null)
+            delete("%s/repos/%s/%s/issues/%d/labels/%s".formatted(API, owner, repo, issueNumber, existing));
+        if (newXp > 0)
+            addLabel(issueNumber, "xp:" + newXp);
     }
 
     // ── Parsing ─────────────────────────────────────────────────────────────
@@ -277,6 +305,15 @@ public class GitHubClient {
             String avatarUrl = manifest.path("avatarUrl").asText(
                     opener.path("avatar_url").asText(""));
 
+            int xp = manifest.path("xp").asInt(0);
+            for (JsonNode label : issue.path("labels")) {
+                String name = label.path("name").asText();
+                if (name.startsWith("xp:")) {
+                    try { xp = Integer.parseInt(name.substring(3)); } catch (NumberFormatException ignored) {}
+                    break;
+                }
+            }
+
             return Optional.of(new GuildMember(
                     heroId,
                     manifest.path("heroName").asText(heroId),
@@ -284,7 +321,7 @@ public class GitHubClient {
                     skills,
                     validatedSkills,
                     manifest.path("level").asInt(1),
-                    manifest.path("xp").asInt(0),
+                    xp,
                     manifest.path("specialty").asText(""),
                     githubLogin,
                     avatarUrl,

@@ -94,6 +94,22 @@ public class SolutionConsumer {
             }
         }
 
+        // XP da quest (apenas quests reais — probes já creditam via validateSkill)
+        if (!msg.questId().startsWith("probe:") && !validated.isEmpty()) {
+            questBoard.getQuests().stream()
+                    .filter(q -> q.id().equals(msg.questId()) && q.xpReward() > 0)
+                    .findFirst()
+                    .ifPresent(quest -> {
+                        try {
+                            github.addXp(hero.issueNumber(), quest.xpReward());
+                            log.info("Quest XP creditado: +{} para {} (quest {}).",
+                                    quest.xpReward(), msg.heroId(), msg.questId());
+                        } catch (Exception e) {
+                            log.error("Falha ao creditar quest XP para {}: {}", msg.heroId(), e.getMessage());
+                        }
+                    });
+        }
+
         if (!validated.isEmpty()) {
             registry.refresh();
             String skillsJson = validated.stream()
