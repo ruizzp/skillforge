@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guild Hub — SkillForge</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0d0f14; --bg2: #13161e; --bg3: #1a1e2a; --border: #252a38;
+            --text: #e2e8f0; --text2: #94a3b8; --text3: #475569;
+            --accent: #6366f1; --accent2: #818cf8;
+            --green: #10b981; --yellow: #f59e0b; --red: #ef4444; --purple: #a855f7;
+            --mono: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+        body { background: var(--bg); color: var(--text); font-family: var(--mono), monospace; font-size: 14px; line-height: 1.6; }
+        a { color: var(--accent2); text-decoration: none; }
+        a:hover { color: var(--text); }
+
+        .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-brand { font-size: 16px; font-weight: 600; letter-spacing: 0.05em; color: var(--accent2); }
+        .topbar-brand span { color: var(--text3); font-weight: 400; }
+        .hub-badge { background: var(--bg3); border: 1px solid var(--accent); border-radius: 4px; padding: 2px 10px; font-size: 11px; color: var(--accent2); letter-spacing: 0.06em; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        @media (max-width: 900px) { .grid-4 { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 600px) { .grid-2, .grid-4 { grid-template-columns: 1fr; } }
+
+        .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+        .card-title { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+        .stat-num { font-size: 32px; font-weight: 700; color: var(--text); }
+        .stat-label { font-size: 11px; color: var(--text3); margin-top: 4px; }
+        .section-gap { margin-bottom: 24px; }
+        code { background: var(--bg3); border: 1px solid var(--border); padding: 1px 6px; border-radius: 3px; font-size: 12px; color: var(--green); }
+
+        /* Leaderboard */
+        .rank-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .rank-row:last-child { border-bottom: none; }
+        .rank-num { width: 28px; text-align: center; font-size: 13px; font-weight: 700; color: var(--text3); flex-shrink: 0; }
+        .rank-num.gold   { color: #fbbf24; }
+        .rank-num.silver { color: #94a3b8; }
+        .rank-num.bronze { color: #d97706; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); object-fit: cover; }
+        .avatar-ph { width: 32px; height: 32px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text3); flex-shrink: 0; }
+        .hero-name { font-size: 13px; font-weight: 500; }
+        .hero-class { font-size: 11px; color: var(--text3); }
+        .hero-xp { margin-left: auto; font-size: 12px; color: var(--yellow); }
+        .level-tag { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; font-size: 10px; color: var(--accent2); }
+
+        /* Skills */
+        .skill-pill { display: inline-block; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; font-size: 11px; color: var(--text2); margin: 2px; }
+        .skill-count { color: var(--accent2); font-size: 10px; margin-left: 4px; }
+
+        /* Quest rarity badges */
+        .rarity-common    { color: var(--text2); }
+        .rarity-rare      { color: #3b82f6; }
+        .rarity-epic      { color: var(--purple); }
+        .rarity-legendary { color: var(--yellow); }
+
+        /* Events */
+        .event-feed { font-size: 12px; color: var(--text2); max-height: 200px; overflow-y: auto; }
+        .event-item { padding: 6px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; }
+        .event-time { color: var(--text3); flex-shrink: 0; }
+        .event-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 6px; }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-brand">SKILL<span>FORGE</span></div>
+    <span class="hub-badge">GUILD HUB</span>
+</div>
+
+<div class="container">
+
+    <!-- Stats summary -->
+    <div class="grid-4 section-gap">
+        <div class="card">
+            <div class="card-title">Heróis Registrados</div>
+            <div class="stat-num" th:text="${heroCount}">0</div>
+            <div class="stat-label">membros ativos</div>
+        </div>
+        <div class="card">
+            <div class="card-title">XP Total da Guilda</div>
+            <div class="stat-num" th:text="${totalXp}">0</div>
+            <div class="stat-label">experiência acumulada</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Quests Abertas</div>
+            <div class="stat-num" th:text="${openQuests}">0</div>
+            <div class="stat-label">disponíveis agora</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Quests Completadas</div>
+            <div class="stat-num" th:text="${completedQuests}">0</div>
+            <div class="stat-label">pela guilda</div>
+        </div>
+    </div>
+
+    <div class="grid-2 section-gap">
+
+        <!-- Leaderboard -->
+        <div class="card">
+            <div class="card-title">Leaderboard</div>
+            <div th:if="${leaderboard.isEmpty()}" style="color:var(--text3); font-size:12px; text-align:center; padding:20px 0;">
+                Nenhum herói registrado ainda.<br>
+                Abra uma issue com label <code>hero</code> para se registrar.
+            </div>
+            <div th:each="entry : ${leaderboard}" class="rank-row">
+                <div class="rank-num"
+                     th:classappend="${entry.rank == 1 ? 'gold' : (entry.rank == 2 ? 'silver' : (entry.rank == 3 ? 'bronze' : ''))}"
+                     th:text="${entry.rank}">1</div>
+                <img th:if="${entry.member.avatarUrl != null and !entry.member.avatarUrl.isEmpty()}"
+                     th:src="${entry.member.avatarUrl}" class="avatar" alt="">
+                <div th:unless="${entry.member.avatarUrl != null and !entry.member.avatarUrl.isEmpty()}"
+                     class="avatar-ph" th:text="${entry.member.heroName.substring(0,1)}">H</div>
+                <div>
+                    <div class="hero-name" th:text="${entry.member.heroName}">Hero</div>
+                    <div class="hero-class" th:text="${entry.member.heroClass}">Class</div>
+                </div>
+                <span class="level-tag" th:text="${entry.heroLevel.name()}">APPRENTICE</span>
+                <div class="hero-xp" th:text="${entry.member.xp} + ' XP'">0 XP</div>
+            </div>
+        </div>
+
+        <!-- Skill distribution -->
+        <div class="card">
+            <div class="card-title">Capacidade da Guilda</div>
+            <div th:if="${skillDist.isEmpty()}" style="color:var(--text3); font-size:12px; text-align:center; padding:20px 0;">
+                Nenhuma skill declarada ainda.
+            </div>
+            <div th:each="entry : ${skillDist}">
+                <span class="skill-pill">
+                    <span th:text="${entry.key}">skill</span>
+                    <span class="skill-count" th:text="'×' + ${entry.value}">×1</span>
+                </span>
+            </div>
+
+            <div th:if="${!questsByRarity.isEmpty()}" style="margin-top:20px;">
+                <div class="card-title" style="margin-top:0;">Quests por Raridade</div>
+                <div th:each="entry : ${questsByRarity}" style="display:flex; justify-content:space-between; padding:4px 0; font-size:12px; border-bottom:1px solid var(--border);">
+                    <span th:text="${entry.key.name()}"
+                          th:classappend="${'rarity-' + entry.key.name().toLowerCase()}">COMMON</span>
+                    <span th:text="${entry.value}">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live event feed -->
+    <div class="card section-gap">
+        <div class="card-title">
+            Eventos em Tempo Real
+            <span style="float:right; color:var(--green); font-size:10px;" id="sse-status">● conectando...</span>
+        </div>
+        <div class="event-feed" id="event-feed">
+            <div style="color:var(--text3); font-size:12px; padding:8px 0;">Aguardando eventos...</div>
+        </div>
+    </div>
+
+    <!-- API reference -->
+    <div class="card section-gap">
+        <div class="card-title">API do Hub</div>
+        <div style="font-size:12px; color:var(--text2); display:grid; gap:6px;">
+            <div><code>GET /api/heroes</code> — lista todos os heróis registrados</div>
+            <div><code>GET /api/heroes/{heroId}</code> — dados de um herói específico</div>
+            <div><code>GET /api/leaderboard</code> — ranking por XP</div>
+            <div><code>GET /api/quests?rarity=RARE&amp;status=open</code> — quests filtradas</div>
+            <div><code>POST /api/quests</code> — cria nova quest (requer GITHUB_TOKEN)</div>
+            <div><code>GET /api/stats</code> — estatísticas completas da guilda</div>
+            <div><code>GET /api/health</code> — health check</div>
+            <div><code>GET /events</code> — SSE stream de eventos</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const feed = document.getElementById('event-feed');
+    const status = document.getElementById('sse-status');
+    const es = new EventSource('/events');
+
+    es.onopen  = () => { status.textContent = '● ao vivo'; status.style.color = 'var(--green)'; };
+    es.onerror = () => { status.textContent = '● desconectado'; status.style.color = 'var(--red)'; };
+
+    es.addEventListener('GUILD_STATE', e => {
+        const d = JSON.parse(e.data);
+        addEvent('HUB', `${d.heroes} heróis · ${d.openQuests} quests abertas · ${d.totalXp} XP total`);
+    });
+    es.addEventListener('HERO_JOINED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('ENTROU', `${d.heroName} (${d.heroId}) registrado na guilda — issue #${d.issueNumber}`);
+        setTimeout(() => location.reload(), 3000);
+    });
+    es.addEventListener('QUEST_UNLOCKED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('QUEST', `[${d.rarity}] ${d.title} — +${d.xpReward} XP`);
+    });
+    es.addEventListener('FORK_DISCOVERED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('FORK', `Fork de @${d.forkOwner} descoberto — ${d.heroName} aguarda validação (issue #${d.issueNumber})`);
+    });
+    es.addEventListener('SOLUTION_RECEIVED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('SOLUÇÃO', `${d.heroName} resolveu ${d.questId} — confiança ${Math.round(d.confidence * 100)}%`);
+    });
+
+    function addEvent(type, msg) {
+        const t = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        const div = document.createElement('div');
+        div.className = 'event-item';
+        div.innerHTML = `<span class="event-dot"></span><span class="event-time">${t}</span><span><strong>${type}</strong> — ${msg}</span>`;
+        feed.prepend(div);
+        feed.querySelector('[style*="Aguardando"]')?.remove();
+    }
+</script>
+</body>
+</html>

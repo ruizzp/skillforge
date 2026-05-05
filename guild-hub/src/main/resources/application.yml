@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: guild-hub
+  rabbitmq:
+    addresses: ${AMQP_URL}
+    ssl:
+      enabled: ${AMQP_SSL_ENABLED:false}
+
+guild:
+  github:
+    owner: fidelisfelipe
+    repo: skillforge
+    token: ${GITHUB_TOKEN:}
+  amqp:
+    exchange: ${AMQP_EXCHANGE:skillforge}
+    queue: ${AMQP_QUEUE:skillforge.problems}
+
+logging:
+  level:
+    com.skillforge: INFO
+  pattern:
+    console: "%d{HH:mm:ss} %highlight(%-5level) %cyan(%-30logger{30}) %msg%n"
