@@ -32,6 +32,8 @@ target/
 *.iml
 .vscode/
 *.swp
+out/
 
 # Local config overrides (keep manifest.json tracked as template)
 application-local.yml
+.env
