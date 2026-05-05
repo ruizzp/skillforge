@@ -1,7 +1,10 @@
 package com.skillforge.hub.web;
 
+import com.skillforge.hub.service.HeroPresenceService;
 import com.skillforge.hub.service.HeroRegistryService;
 import com.skillforge.hub.service.QuestBoardService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,6 +12,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 
@@ -18,6 +22,10 @@ public class HubDashboardController {
     private final HeroRegistryService registry;
     private final QuestBoardService questBoard;
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+
+    // @Lazy quebra a dependência circular: HeroPresenceService → HubDashboardController
+    @Autowired @Lazy
+    private HeroPresenceService presence;
 
     public HubDashboardController(HeroRegistryService registry, QuestBoardService questBoard) {
         this.registry = registry;
@@ -34,6 +42,7 @@ public class HubDashboardController {
         model.addAttribute("skillDist",       registry.getSkillDistribution());
         model.addAttribute("questsByRarity",  questBoard.getCountByRarity());
         model.addAttribute("lastFetchMs",     registry.getLastFetchMs());
+        model.addAttribute("onlineHeroes",    presence != null ? presence.getOnlineHeroes() : Set.of());
         return "hub";
     }
 

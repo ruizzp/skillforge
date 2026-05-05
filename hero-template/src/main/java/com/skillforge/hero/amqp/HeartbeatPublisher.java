@@ -28,7 +28,7 @@ public class HeartbeatPublisher {
     }
 
     @Scheduled(fixedDelayString = "${guild.amqp.heartbeat-interval-ms:60000}",
-               initialDelayString = "${guild.amqp.heartbeat-interval-ms:60000}")
+               initialDelayString = "${guild.amqp.heartbeat-initial-delay-ms:5000}")
     public void publish() {
         var manifest = guildService.getManifest();
         var msg = new HeartbeatMessage(

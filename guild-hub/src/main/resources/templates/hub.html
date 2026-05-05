@@ -59,6 +59,25 @@
         .rarity-epic      { color: var(--purple); }
         .rarity-legendary { color: var(--yellow); }
 
+        /* Presence dot */
+        .presence-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); flex-shrink: 0; transition: background 0.4s, box-shadow 0.4s; }
+        .presence-dot.online { background: var(--green); box-shadow: 0 0 5px var(--green); }
+
+        /* Skill drawer */
+        .rank-row { cursor: pointer; border-radius: 4px; transition: background 0.15s; }
+        .rank-row:hover { background: var(--bg3); }
+        .skill-drawer { display: none; padding: 8px 8px 10px 52px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 6px; align-items: center; }
+        .skill-drawer.open { display: flex; }
+        .skill-entry { display: inline-flex; align-items: center; gap: 4px; }
+        .skill-pill-sm { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); }
+        .skill-pill-sm.validated { border-color: var(--green); color: var(--green); }
+        .val-check { font-size: 11px; color: var(--green); }
+        .validate-btn { font-size: 10px; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--accent); background: transparent; color: var(--accent2); cursor: pointer; font-family: var(--mono); transition: background 0.15s, color 0.15s; }
+        .validate-btn:hover:not(:disabled) { background: var(--accent); color: #fff; }
+        .validate-btn:disabled { opacity: 0.5; cursor: default; }
+        .validate-btn.done { border-color: var(--green); color: var(--green); }
+        .validate-btn.err { border-color: var(--red); color: var(--red); }
+
         /* Events */
         .event-feed { font-size: 12px; color: var(--text2); max-height: 200px; overflow-y: auto; }
         .event-item { padding: 6px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; }
@@ -108,7 +127,8 @@
                 Nenhum herói registrado ainda.<br>
                 Abra uma issue com label <code>hero</code> para se registrar.
             </div>
-            <div th:each="entry : ${leaderboard}" class="rank-row">
+            <th:block th:each="entry : ${leaderboard}">
+            <div class="rank-row" th:attr="data-hero-id=${entry.member.heroId}">
                 <div class="rank-num"
                      th:classappend="${entry.rank == 1 ? 'gold' : (entry.rank == 2 ? 'silver' : (entry.rank == 3 ? 'bronze' : ''))}"
                      th:text="${entry.rank}">1</div>
@@ -122,7 +142,25 @@
                 </div>
                 <span class="level-tag" th:text="${entry.heroLevel.name()}">APPRENTICE</span>
                 <div class="hero-xp" th:text="${entry.member.xp} + ' XP'">0 XP</div>
+                <span class="presence-dot"
+                      th:classappend="${onlineHeroes.contains(entry.member.heroId) ? ' online' : ''}"
+                      th:title="${onlineHeroes.contains(entry.member.heroId) ? 'Online' : 'Offline'}"></span>
             </div>
+            <div class="skill-drawer" th:id="'drawer-' + ${entry.member.heroId}">
+                <th:block th:each="skill : ${entry.member.skills}">
+                <div class="skill-entry">
+                    <span class="skill-pill-sm"
+                          th:classappend="${entry.member.validatedSkills.contains(skill) ? ' validated' : ''}"
+                          th:text="${skill}">skill</span>
+                    <span th:if="${entry.member.validatedSkills.contains(skill)}" class="val-check">✓</span>
+                    <button th:unless="${entry.member.validatedSkills.contains(skill)}"
+                            class="validate-btn"
+                            th:attr="data-hero-id=${entry.member.heroId},data-skill=${skill}"
+                            onclick="validateSkill(event, this)">validar</button>
+                </div>
+                </th:block>
+            </div>
+            </th:block>
         </div>
 
         <!-- Skill distribution -->
@@ -206,6 +244,73 @@
         const d = JSON.parse(e.data);
         addEvent('SOLUÇÃO', `${d.heroName} resolveu ${d.questId} — confiança ${Math.round(d.confidence * 100)}%`);
     });
+    es.addEventListener('HERO_ONLINE', e => {
+        const d = JSON.parse(e.data);
+        setPresence(d.heroId, true);
+        addEvent('ONLINE', `${d.heroName} está online`);
+    });
+    es.addEventListener('HERO_OFFLINE', e => {
+        const d = JSON.parse(e.data);
+        setPresence(d.heroId, false);
+        addEvent('OFFLINE', `${d.heroName} foi offline`);
+    });
+    es.addEventListener('SKILL_AUTO_VALIDATED', e => {
+        const d = JSON.parse(e.data);
+        d.skills.forEach(skill => markValidated(d.heroId, skill));
+        addEvent('SKILL', `${d.heroId}: skill "${d.skills.join(', ')}" validada ✓`);
+    });
+
+    document.querySelectorAll('.rank-row').forEach(row => {
+        row.addEventListener('click', () => toggleDrawer(row.dataset.heroId));
+    });
+
+    function toggleDrawer(heroId) {
+        document.getElementById('drawer-' + heroId)?.classList.toggle('open');
+    }
+
+    async function validateSkill(event, btn) {
+        event.stopPropagation();
+        const heroId = btn.dataset.heroId;
+        const skill  = btn.dataset.skill;
+        btn.textContent = 'enviando...';
+        btn.disabled = true;
+        try {
+            const res  = await fetch(`/api/heroes/${heroId}/skills/${skill}/validate`, { method: 'POST' });
+            const data = await res.json();
+            if (res.status === 202) {
+                btn.textContent = 'aguardando...';
+                // botão atualiza quando chegar SSE SKILL_AUTO_VALIDATED
+            } else if (res.ok && data.message === 'já validada') {
+                markValidated(heroId, skill);
+            } else {
+                btn.textContent = data.error || 'erro';
+                btn.classList.add('err');
+                btn.disabled = false;
+            }
+        } catch {
+            btn.textContent = 'falhou';
+            btn.classList.add('err');
+            btn.disabled = false;
+        }
+    }
+
+    function markValidated(heroId, skill) {
+        const btn = document.querySelector(`.validate-btn[data-hero-id="${CSS.escape(heroId)}"][data-skill="${CSS.escape(skill)}"]`);
+        if (!btn) return;
+        btn.textContent = '✓ validada';
+        btn.classList.add('done');
+        btn.previousElementSibling?.classList.add('validated');
+    }
+
+    function setPresence(heroId, online) {
+        const row = document.querySelector(`.rank-row[data-hero-id="${CSS.escape(heroId)}"]`);
+        if (!row) return;
+        const dot = row.querySelector('.presence-dot');
+        if (dot) {
+            dot.classList.toggle('online', online);
+            dot.title = online ? 'Online' : 'Offline';
+        }
+    }
 
     function addEvent(type, msg) {
         const t = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
