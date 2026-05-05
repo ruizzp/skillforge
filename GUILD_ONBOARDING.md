@@ -17,65 +17,84 @@ Quando você evolui, novas possibilidades se desbloqueiam para todos.
 
 ---
 
-## Primeira Quest: Registrar-se na Guilda
+## Primeira Quest: Forjar seu Herói
 
-**Objetivo:** Subir o seu nó herói e registrá-lo no Guild Hub.  
+**Objetivo:** Registrar-se na guilda com um manifesto válido.  
 **Recompensa:** 50 XP + status `ACTIVE` na guilda.  
 **Desbloqueio:** Notificação automática para todos os membros da guilda.
 
 ### Passos
 
+**1. Fork o repositório no GitHub**
+
+Acesse `github.com/fidelisfelipe/skillforge` e clique em **Fork**.  
+Você terá `github.com/SEU-USUARIO/skillforge`.
+
+**2. Configure seu manifesto**
+
+Edite `hero-template/src/main/resources/manifest.json`:
+
+```json
+{
+  "heroId": "seu-hero-id",
+  "heroName": "Seu Nome",
+  "heroClass": "Backend",
+  "skills": ["java", "spring-boot"],
+  "endpoint": "http://localhost:8081",
+  "model": "phi3:mini",
+  "specialty": "Descreva em uma frase o que você resolve melhor.",
+  "level": 1,
+  "xp": 0
+}
+```
+
+O `heroId` deve ser único: letras minúsculas, números e hífens (ex: `fidelisdev`).  
+Consulte [`SKILL_MANIFEST_GUIDE.md`](SKILL_MANIFEST_GUIDE.md) para a lista completa de skills reconhecidas.
+
+**3. Faça push do manifesto**
+
 ```bash
-# 1. Fork o repositório no GitHub, depois clone o seu fork
-git clone https://github.com/SEU-USUARIO/skillforge.git
-cd skillforge
-
-# 2. Edite o manifesto com suas skills reais
-#    Veja SKILL_MANIFEST_GUIDE.md para instruções completas
-vi hero-template/src/main/resources/manifest.json
-
-# 3. Configure o GitHub do repositório da guilda em application.yml
-#    guild.github.owner e guild.github.repo já apontam para o repo central
-#    Opcional: exporte GITHUB_TOKEN para aumentar o rate limit da API
-export GITHUB_TOKEN=ghp_...   # opcional mas recomendado
-
-# 4. Suba o seu nó herói
-cd hero-template
-mvn spring-boot:run
-
-# 5. Abra o dashboard no browser
-open http://localhost:8081
-
-# 6. Confirme a API
-curl http://localhost:8081/api/health
-curl http://localhost:8081/api/manifest
+git add hero-template/src/main/resources/manifest.json
+git commit -m "forge: configurar herói seu-hero-id"
+git push
 ```
 
-Para um passo a passo mais detalhado do registro (incluindo exemplo de issue com prefixo `[HERO-REGISTRATION]`), veja [`HERO_REGISTRATION.md`](HERO_REGISTRATION.md).
-
-O dashboard já carrega as quests e membros da guilda direto do GitHub.
-
-Quando o registro for confirmado, o Guild Hub emite automaticamente para todos os membros ativos:
-
-```
-⚡ [NOME_DO_HERÓI] entrou na guilda.
-   Skills declaradas: [lista]
-   Quests desbloqueadas: N
-   Guild status: X heróis ativos · Y quests disponíveis
-```
+Pronto. O Guild Hub detecta o fork automaticamente e cuida do registro.
 
 ---
 
-## O que acontece quando você entra
+## O que acontece depois do push
 
 ```
-Você registra  →  Hub atualiza o Capability Graph
-               →  Quests pendentes são reavaliadas
-               →  SSE notifica todos os heróis ativos
-               →  Novas possibilidades se desbloqueiam
+ForkWatcher (hub)     → detecta seu fork, lê o manifest.json
+RegistrationWatcher   → valida os campos, posta comentário na issue
+                      → se válido:   label "registered" + boas-vindas
+                      → se inválido: lista erros para você corrigir
+HeroRegistryService   → atualiza leaderboard e mapa de skills
+SSE                   → notifica todos os heróis ativos em tempo real
 ```
 
-Cada skill que você declara pode desbloquear quests que estavam bloqueadas por falta de capacidade. Não para você — para a guilda inteira.
+O hub verifica forks a cada 10 minutos e valida pendências a cada 2 minutos.  
+**Você não precisa criar nenhuma issue manualmente.**
+
+---
+
+## (Opcional) Rodar seu nó herói localmente
+
+Necessário apenas para participar de quests com endpoint ativo — quando o hub distribui problemas para os heróis resolverem em paralelo.
+
+```bash
+# Clone o seu fork
+git clone https://github.com/SEU-USUARIO/skillforge.git
+cd skillforge/hero-template
+
+# Suba o nó
+mvn spring-boot:run
+```
+
+Dashboard: `http://localhost:8081`  
+Manifest ativo: `http://localhost:8081/api/manifest`  
+Health check: `http://localhost:8081/api/health`
 
 ---
 
@@ -89,14 +108,13 @@ Cada skill que você declara pode desbloquear quests que estavam bloqueadas por 
 | Quest Board básico | Skill Gap Dashboard |
 | Sua posição: Apprentice | Trilha de progressão completa |
 
-> Mais informação é liberada conforme você contribui, completa quests e sobe de nível.  
-> O sistema revela o que você precisa saber quando você está pronto para usar.
+> Mais informação é liberada conforme você contribui, completa quests e sobe de nível.
 
 ---
 
 ## Notificações automáticas da guilda
 
-Enquanto estiver conectado ao hub, você receberá notificações em tempo real:
+Enquanto estiver conectado ao hub, você receberá via SSE:
 
 ```
 # Novo herói entrou
@@ -105,24 +123,20 @@ Enquanto estiver conectado ao hub, você receberá notificações em tempo real:
 
 # Quest completada
 ✓ QUEST-007 completada por RxMage. Guild XP +400.
-   Próxima quest do grupo disponível: QUEST-011 [EPIC]
 
 # Herói subiu de nível
 ▲ CodeBlade atingiu Expert. Votos em conflitos desbloqueados.
 ```
 
-Para receber notificações, basta manter o seu nó ativo. O hub cuida do resto.
-
 ---
 
 ## Seu próximo passo
 
-Leia [`SKILL_MANIFEST_GUIDE.md`](SKILL_MANIFEST_GUIDE.md) antes de registrar.  
-A qualidade do seu manifesto determina quais quests você pode participar.
+Quando o registro for confirmado, abra [`QUEST_BOARD.md`](QUEST_BOARD.md) e escolha sua primeira quest.
 
-Quando estiver registrado, abra [`QUEST_BOARD.md`](QUEST_BOARD.md) e escolha a sua primeira quest.
+A qualidade do seu manifesto determina quais quests você pode participar.
 
 ---
 
-*Mais detalhes sobre arquitetura, contratos e decisões técnicas estão em `PROJECT_CONTEXT.md`.*  
-*Esse documento é desbloqueado automaticamente quando você atinge o nível Journeyman.*
+*Mais detalhes técnicos sobre o hub em [`guild-hub/README.md`](guild-hub/README.md).*  
+*Arquitetura completa em `PROJECT_CONTEXT.md` — desbloqueado no nível Journeyman.*

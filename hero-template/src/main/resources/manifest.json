@@ -1,11 +1,11 @@
 {
-  "heroId": "your-hero-id",
-  "heroName": "Your Hero Name",
+  "heroId": "fidelisdev",
+  "heroName": "Fidelis",
   "heroClass": "Backend",
-  "skills": ["java", "spring-boot"],
+  "skills": ["java", "spring-boot", "distributed-systems", "gamification"],
   "endpoint": "http://localhost:8081",
   "model": "phi3:mini",
-  "specialty": "Descreva em uma frase o que você resolve melhor.",
+  "specialty": "Arquitetura de plataformas de capacidade coletiva.",
   "level": 1,
   "xp": 0
 }

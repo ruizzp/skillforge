@@ -1,91 +1,135 @@
 # Hero Registration Playbook
 
-Guia rapido para novos herois publicarem o manifesto e aparecerem na lista de membros da guilda.
+Guia de referência para forjar seu herói e registrá-lo na guilda.
+
+> **TL;DR:** Fork → edite `manifest.json` → push. O hub registra automaticamente.
 
 ---
 
-## 1) Preparar manifesto local
+## Fluxo automático (padrão)
 
-Edite `hero-template/src/main/resources/manifest.json` com suas skills reais.
+O Guild Hub escaneia todos os forks do repo a cada 10 minutos.  
+Quando encontra um fork com `manifest.json` configurado (heroId diferente do padrão), cria a issue de registro e processa a validação sem nenhuma ação manual sua.
 
-Valide localmente:
-
-```bash
-cd /home/guimaraes/projects/skillforge/hero-template
-mvn spring-boot:run
-curl http://localhost:8081/api/manifest
 ```
-
-Se o endpoint respondeu com seu `heroId`, `heroName` e `skills`, o manifesto esta pronto para registro.
+Seu fork com manifest.json
+         ↓
+   ForkWatcher (hub)
+   └─ lê manifest.json do fork
+   └─ valida heroId, heroName, skills, endpoint
+   └─ cria issue "hero" no repo principal  ←── banco de dados da guilda
+         ↓
+   RegistrationWatcher (hub)
+   └─ se válido:   comenta boas-vindas + label "registered"
+   └─ se inválido: lista erros + label "invalid"
+```
 
 ---
 
-## 2) Criar a issue de registro no GitHub
+## Passo a passo
 
-O dashboard lista membros com base em **issues abertas** com label `hero` no repo da guilda.
-Essa label e aplicada automaticamente quando o titulo comeca com `[HERO-REGISTRATION]`.
+### 1. Fork
 
-- Repo alvo (padrao): `https://github.com/skillforge-guild/skillforge`
-- Link direto para nova issue:
-  - `https://github.com/skillforge-guild/skillforge/issues/new?title=%5BHERO-REGISTRATION%5D%20hero-id`
-- Link para ver todos os herois registrados:
-  - `https://github.com/skillforge-guild/skillforge/issues?q=is%3Aissue%20is%3Aopen%20label%3Ahero`
+Acesse `github.com/fidelisfelipe/skillforge` → **Fork**.
 
-### Titulo sugerido
+### 2. Edite o manifest
 
-```text
-[HERO-REGISTRATION] seu-hero-id
-```
+Arquivo: `hero-template/src/main/resources/manifest.json`
 
-### Corpo da issue (copie e cole)
+| Campo | Obrigatório | Descrição |
+|---|---|---|
+| `heroId` | ✅ | Identificador único. Letras minúsculas, números e hífens. Ex: `fidelisdev` |
+| `heroName` | ✅ | Seu nome ou apelido na guilda |
+| `heroClass` | — | `Backend`, `Frontend`, `Fullstack`, `DevOps`, `Data`, `Mobile`, etc. |
+| `skills` | ✅ | Lista de skills. Pelo menos uma. Veja `SKILL_MANIFEST_GUIDE.md` |
+| `endpoint` | ✅ | URL do seu nó quando estiver rodando. Ex: `http://localhost:8081` |
+| `model` | — | Modelo Ollama local. Padrão: `phi3:mini` |
+| `specialty` | — | Uma frase do que você resolve melhor |
+| `level` | — | Começa em `1`. Atualizado pelo hub conforme você completa quests |
+| `xp` | — | Começa em `0` |
+
+Exemplo mínimo:
 
 ```json
 {
-  "heroId": "seu-hero-id",
-  "heroName": "SeuNomeHeroi",
+  "heroId": "fidelisdev",
+  "heroName": "Fidelis",
   "heroClass": "Backend",
-  "skills": ["java", "spring-boot", "sql"],
+  "skills": ["java", "spring-boot", "distributed-systems"],
   "endpoint": "http://localhost:8081",
   "model": "phi3:mini",
-  "specialty": "Resolvo problemas de API e dados",
+  "specialty": "Arquitetura de plataformas de capacidade coletiva.",
   "level": 1,
   "xp": 0
 }
 ```
 
----
-
-## 3) Confirmar no dashboard
-
-Com seu nodo rodando em `http://localhost:8081`:
+### 3. Push
 
 ```bash
-curl http://localhost:8081/api/guild/status
+git add hero-template/src/main/resources/manifest.json
+git commit -m "forge: configurar herói fidelisdev"
+git push
 ```
 
-Depois atualize `http://localhost:8081` no navegador.
-
-Esperado:
-- sua issue aparece em "Membros da Guilda"
-- contador de herois aumenta
-- quests abertas continuam visiveis
+O hub detecta em até 10 minutos e você receberá um comentário na issue criada automaticamente.
 
 ---
 
-## 4) Problemas comuns
+## Registro manual (alternativo)
 
-- `Nenhum heroi registrado`: nao existe issue com titulo `[HERO-REGISTRATION]` (ou a automacao ainda nao etiquetou), ou o corpo nao e JSON valido.
-- `403` na API do GitHub: exporte token para aumentar limite:
+Se preferir não esperar o ForkWatcher, você pode criar a issue diretamente:
+
+1. Abra uma issue em `github.com/fidelisfelipe/skillforge/issues/new`
+2. Adicione o label `hero`
+3. Cole o JSON do manifest como corpo da issue
+4. O `RegistrationWatcher` processa em até 2 minutos
+
+---
+
+## Corrigindo um registro inválido
+
+Se o hub postar um comentário com erros:
+
+1. Corrija o `manifest.json` no seu fork
+2. Faça push
+3. O ForkWatcher tentará novamente no próximo ciclo (10 min)
+
+Ou edite diretamente o corpo da issue que foi criada — o `RegistrationWatcher` reprocessa automaticamente.
+
+---
+
+## Rodando o nó localmente
+
+Opcional para registro, obrigatório para participar de quests com endpoint ativo.
 
 ```bash
-export GITHUB_TOKEN=github_pat_xxx
+cd hero-template
+mvn spring-boot:run
 ```
 
-- Membro nao aparece na hora: recarregue a pagina e aguarde o refresh periodico do app.
+| Endpoint | O que retorna |
+|---|---|
+| `http://localhost:8081` | Dashboard do herói |
+| `http://localhost:8081/api/health` | Status do nó |
+| `http://localhost:8081/api/manifest` | Seu manifest ativo |
+| `http://localhost:8081/api/solve` | Recebe problemas do hub (implemente com Ollama) |
 
 ---
 
-## 5) Proximo passo
+## Problemas comuns
 
-Apos registro, abra `QUEST_BOARD.md` e escolha uma quest compativel com suas skills.
+**Fork detectado mas heroId ainda é `your-hero-id`**  
+O ForkWatcher ignora forks com o heroId padrão. Edite e faça push.
 
+**Issue criada mas sem label `registered` após 5 minutos**  
+O hub pode estar sem `GITHUB_TOKEN`. Verifique se o hub está rodando em modo completo.
+
+**Quero aparecer no leaderboard mas não quero rodar o nó agora**  
+Só o push do manifest já é suficiente para aparecer no registro e no leaderboard.
+
+---
+
+## Após o registro
+
+Abra [`QUEST_BOARD.md`](QUEST_BOARD.md) e escolha sua primeira quest.

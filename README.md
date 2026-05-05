@@ -11,6 +11,7 @@
 | 🚪 | [GUILD_ONBOARDING.md](GUILD_ONBOARDING.md) | Novo na guilda? Comece aqui. |
 | ⚔️ | [QUEST_BOARD.md](QUEST_BOARD.md) | Tasks por nível com critérios de aceitação. |
 | 🧬 | [SKILL_MANIFEST_GUIDE.md](SKILL_MANIFEST_GUIDE.md) | Como declarar e validar suas skills. |
+| 🏰 | [guild-hub/README.md](guild-hub/README.md) | Orquestrador central — API, fluxo fork→registro, SSE. |
 
 ---
 
