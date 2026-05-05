@@ -4,14 +4,23 @@ server:
 spring:
   application:
     name: skillforge-hero
+  rabbitmq:
+    host: ${AMQP_URL}
+    port: ${AMQP_PORT:5672}
+    username: ${AMQP_USERVROST}
+    password: ${AMQP_PWD}
+    virtual-host: ${AMQP_USERVROST}
 
 guild:
   github:
-    owner: skillforge-guild   # change to your GitHub org/user
-    repo: skillforge           # change to your repo name
-    token: ${GITHUB_TOKEN:}    # required for guild hub (write operations)
+    owner: fidelisfelipe  # owner do repo PRINCIPAL (não o seu fork)
+    repo: skillforge       # nome do repo principal
+    token: ${GITHUB_TOKEN:}
   hub:
-    enabled: false             # set true on the central guild hub node only
+    enabled: false  # nunca mude isso — o hub é um módulo separado (guild-hub)
+  amqp:
+    exchange: ${AMQP_EXCHANGE:skillforge}
+    queue: ${AMQP_QUEUE:skillforge.problems}
 
 logging:
   level:
