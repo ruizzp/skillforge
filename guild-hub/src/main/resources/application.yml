@@ -28,5 +28,6 @@ skillforge:
 logging:
   level:
     com.skillforge: INFO
+    org.apache.catalina.connector: WARN  # suprime Broken pipe / ClientAbortException de SSE
   pattern:
     console: "%d{HH:mm:ss} %highlight(%-5level) %cyan(%-30logger{30}) %msg%n"
