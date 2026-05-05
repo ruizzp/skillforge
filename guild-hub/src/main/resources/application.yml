@@ -18,6 +18,13 @@ guild:
     exchange: ${AMQP_EXCHANGE:skillforge}
     queue: ${AMQP_QUEUE:skillforge.problems}
 
+skillforge:
+  skill-validation:
+    confidence-threshold: ${SKILL_CONFIDENCE_THRESHOLD:0.75}
+  heartbeat:
+    timeout-ms: ${HEARTBEAT_TIMEOUT_MS:180000}        # 3 min sem heartbeat = offline
+    check-interval-ms: ${HEARTBEAT_CHECK_INTERVAL_MS:60000}  # verifica a cada 1 min
+
 logging:
   level:
     com.skillforge: INFO

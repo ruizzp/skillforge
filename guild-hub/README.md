@@ -78,7 +78,8 @@ Base: `http://localhost:8080/api`
 | `GET` | `/quests` | Lista quests (filtros opcionais) |
 | `POST` | `/quests` | Cria nova quest (requer GITHUB_TOKEN) |
 | `GET` | `/stats` | Estatísticas completas da guilda |
-| `GET` | `/api/health` | Health check |
+| `GET` | `/presence` | Status online/offline dos heróis em tempo real |
+| `GET` | `/health` | Health check |
 | `GET` | `/events` | SSE stream de eventos em tempo real |
 
 ### Filtros de quests
@@ -120,6 +121,10 @@ Conecte em `GET /events` para receber eventos conforme ocorrem.
 | `GUILD_STATE` | Na conexão | `{heroes, openQuests, completedQuests, totalXp}` |
 | `HERO_JOINED` | Herói validado e registrado | `{heroId, heroName, issueNumber}` |
 | `FORK_DISCOVERED` | Fork com manifest configurado detectado | `{heroId, heroName, forkOwner, issueNumber}` |
+| `HERO_ONLINE` | Hero envia primeiro heartbeat (ou volta online) | `{heroId, heroName}` |
+| `HERO_OFFLINE` | Hero para de enviar heartbeat por mais de `HEARTBEAT_TIMEOUT_MS` | `{heroId, heroName}` |
+| `SOLUTION_RECEIVED` | Hero resolve uma quest via AMQP | `{questId, heroId, heroName, confidence}` |
+| `SKILL_AUTO_VALIDATED` | Skill validada automaticamente após solução confiável | `{heroId, questId, skills[]}` |
 | `QUEST_UNLOCKED` | Quest criada (futuro) | `{rarity, title, xpReward}` |
 
 Exemplo com `curl`:
@@ -173,10 +178,30 @@ server:
 
 guild:
   github:
-    owner: fidelisfelipe   # dono do repo principal
-    repo: skillforge        # nome do repo
-    token: ${GITHUB_TOKEN:} # via env var ou propriedade
+    owner: fidelisfelipe
+    repo: skillforge
+    token: ${GITHUB_TOKEN:}
+  amqp:
+    exchange: ${AMQP_EXCHANGE:skillforge}
+    queue: ${AMQP_QUEUE:skillforge.problems}
+
+skillforge:
+  skill-validation:
+    confidence-threshold: ${SKILL_CONFIDENCE_THRESHOLD:0.75}
+  heartbeat:
+    timeout-ms: ${HEARTBEAT_TIMEOUT_MS:180000}       # 3 min sem heartbeat = offline
+    check-interval-ms: ${HEARTBEAT_CHECK_INTERVAL_MS:60000}  # verifica a cada 1 min
 ```
+
+| Variável de ambiente | Padrão | Descrição |
+|---|---|---|
+| `GITHUB_TOKEN` | — | Token com permissão `repo` |
+| `AMQP_URL` | — | URL do broker RabbitMQ |
+| `AMQP_EXCHANGE` | `skillforge` | Exchange AMQP |
+| `AMQP_QUEUE` | `skillforge.problems` | Fila de problemas |
+| `SKILL_CONFIDENCE_THRESHOLD` | `0.75` | Confiança mínima para auto-validar skills |
+| `HEARTBEAT_TIMEOUT_MS` | `180000` | Tempo sem heartbeat para marcar hero offline |
+| `HEARTBEAT_CHECK_INTERVAL_MS` | `60000` | Frequência de verificação de heroes offline |
 
 ---
 
@@ -199,7 +224,16 @@ guild-hub/
 │   ├── HeroValidator.java      — valida campos obrigatórios do manifest
 │   └── RegistrationWatcher.java — processa issues pendentes de registro
 │
+├── amqp/
+│   ├── AmqpConfig.java          — filas: problems, solutions, heartbeats
+│   ├── HeartbeatConsumer.java   — consome heartbeats e atualiza presença
+│   ├── HeartbeatMessage.java    — mensagem de heartbeat (heroId, heroName, skills, timestamp)
+│   ├── ProblemPublisher.java    — publica problemas para os heróis
+│   ├── SolutionConsumer.java    — recebe soluções, valida skills automaticamente
+│   └── SolutionMessage.java     — mensagem de solução
+│
 ├── service/
+│   ├── HeroPresenceService.java — rastreia online/offline via heartbeats, broadcast SSE
 │   ├── HeroRegistryService.java — registry de heróis, leaderboard, skill map
 │   └── QuestBoardService.java   — quest board, contadores, criação de quests
 │
@@ -218,4 +252,14 @@ guild-hub/
 | `hero-template` | Referência / arquétipo. Devs fazem fork e customizam. Não roda no hub. |
 | `hero-{nome}` | Repo separado de cada dev (fork do hero-template ou do skillforge completo). |
 
-O hub **não depende** do `hero-template` em tempo de execução. A comunicação é 100% via GitHub Issues.
+### Canais de comunicação
+
+Os nós da guilda **não se comunicam via endpoint HTTP entre si**. Cada nó só conhece os outros através dos canais abaixo:
+
+| Canal | Usado para |
+|---|---|
+| **GitHub Issues** | Registro de heróis, quests, validação de skills — estado persistido |
+| **RabbitMQ (AMQP)** | Troca de problemas e soluções em tempo real entre hub e heróis |
+| **SSE (`/events`)** | Dashboard recebe eventos do hub (somente leitura, hub → browser) |
+
+O hub publica `ProblemMessage` na fila e qualquer herói online que tenha as skills necessárias responde com `SolutionMessage`. O `endpoint` no manifest serve apenas para identificação — **não é chamado diretamente pelo hub**.

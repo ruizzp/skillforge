@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AmqpConfig {
 
+    public static final String HEARTBEATS_QUEUE = "skillforge.heartbeats";
+
     @Value("${guild.amqp.exchange}")
     private String exchangeName;
 
@@ -24,6 +26,16 @@ public class AmqpConfig {
     @Bean
     public Queue problemQueue() {
         return new Queue(queueName, true);
+    }
+
+    @Bean
+    public Queue heartbeatQueue() {
+        return new Queue(HEARTBEATS_QUEUE, true);
+    }
+
+    @Bean
+    public Binding heartbeatBinding(Queue heartbeatQueue, TopicExchange skillforgeExchange) {
+        return BindingBuilder.bind(heartbeatQueue).to(skillforgeExchange).with("heartbeat");
     }
 
     @Bean

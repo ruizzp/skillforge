@@ -7,6 +7,7 @@ import com.skillforge.hub.domain.Quest;
 import com.skillforge.hub.domain.QuestRarity;
 import com.skillforge.hub.github.GitHubClient;
 import com.skillforge.hub.registration.ForkWatcher;
+import com.skillforge.hub.service.HeroPresenceService;
 import com.skillforge.hub.service.HeroRegistryService;
 import com.skillforge.hub.service.QuestBoardService;
 import org.springframework.http.ResponseEntity;
@@ -24,15 +25,17 @@ public class HubApiController {
     private final ForkWatcher forkWatcher;
     private final GitHubClient github;
     private final ProblemPublisher problemPublisher;
+    private final HeroPresenceService presence;
 
     public HubApiController(HeroRegistryService registry, QuestBoardService questBoard,
                             ForkWatcher forkWatcher, GitHubClient github,
-                            ProblemPublisher problemPublisher) {
+                            ProblemPublisher problemPublisher, HeroPresenceService presence) {
         this.registry = registry;
         this.questBoard = questBoard;
         this.forkWatcher = forkWatcher;
         this.github = github;
         this.problemPublisher = problemPublisher;
+        this.presence = presence;
     }
 
     @GetMapping("/heroes")
@@ -154,6 +157,20 @@ public class HubApiController {
     @GetMapping("/forks")
     public ResponseEntity<List<ForkWatcher.ForkStatus>> forks() {
         return ResponseEntity.ok(forkWatcher.scanAndRegister(false));
+    }
+
+    @GetMapping("/presence")
+    public ResponseEntity<Map<String, Object>> presence() {
+        var onlineIds = presence.getOnlineHeroes();
+        var lastSeen = presence.getLastSeen().entrySet().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue().toString()));
+        return ResponseEntity.ok(Map.of(
+                "online", onlineIds,
+                "onlineCount", onlineIds.size(),
+                "lastSeen", lastSeen
+        ));
     }
 
     @PostMapping("/forks/scan")

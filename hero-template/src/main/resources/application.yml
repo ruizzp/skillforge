@@ -5,11 +5,9 @@ spring:
   application:
     name: skillforge-hero
   rabbitmq:
-    host: ${AMQP_URL}
-    port: ${AMQP_PORT:5672}
-    username: ${AMQP_USERVROST}
-    password: ${AMQP_PWD}
-    virtual-host: ${AMQP_USERVROST}
+    addresses: ${AMQP_URL}
+    ssl:
+      enabled: ${AMQP_SSL_ENABLED:false}
 
 guild:
   github:
@@ -21,6 +19,7 @@ guild:
   amqp:
     exchange: ${AMQP_EXCHANGE:skillforge}
     queue: ${AMQP_QUEUE:skillforge.problems}
+    heartbeat-interval-ms: ${HEARTBEAT_INTERVAL_MS:60000}
 
 logging:
   level:
