@@ -125,16 +125,19 @@ alguém com conhecimento mínimo de domínio precisa validar as respostas espera
 
 ## Esboço das Quests (perguntas mapeadas)
 
-| # | Pergunta | Nome provisório | Rarity | Skills |
-|---|---|---|---|---|
-| PS-001 | Quem chegou? | Modelo do Paciente de Urgência | COMMON | `java`, `fhir`, `data-modeling` |
-| PS-002 | O que está sentindo? | Parser de Queixa Principal | COMMON | `java`, `nlp`, `ollama` |
-| PS-003 | Quão grave é isso? | Motor de Triagem Manchester | RARE | `java`, `rules-engine`, `domain-modeling` |
-| PS-004 | Ela já teve isso? | Histórico Clínico Simplificado | COMMON | `java`, `sqlite`, `jdbc` |
-| PS-005 | O que ela toma? | Checker de Interações Medicamentosas | RARE | `java`, `rest-client`, `ollama` |
-| PS-006 | O que pode ser? | Diagnóstico Diferencial Assistido | EPIC | `java`, `ollama`, `chain-of-thought` |
-| PS-007 | Está melhorando? | Monitor de Sinais Vitais em Tempo Real | EPIC | `java`, `streaming`, `sse`, `algorithms` |
-| PS-008 | O que fazemos? | Sugestão de Conduta Inicial | LEGENDARY | `architecture`, `clinical-reasoning`, `ai-integration` |
+| # | Pergunta | Nome provisório | Rarity | Skills técnicas | Foundations sugeridas |
+|---|---|---|---|---|---|
+| PS-001 | Quem chegou? | Modelo do Paciente de Urgência | COMMON | `java`, `fhir`, `data-modeling` | — |
+| PS-002 | O que está sentindo? | Parser de Queixa Principal | COMMON | `java`, `nlp`, `ollama` | `llm-basics`, `prompt-engineering` |
+| PS-003 | Quão grave é isso? | Motor de Triagem Manchester | RARE | `java`, `rules-engine`, `domain-modeling` | `prompt-engineering`, `confidence-calibration` |
+| PS-004 | Ela já teve isso? | Histórico Clínico Simplificado | COMMON | `java`, `sqlite`, `jdbc` | — |
+| PS-005 | O que ela toma? | Checker de Interações Medicamentosas | RARE | `java`, `rest-client`, `ollama` | `tool-use`, `model-selection` |
+| PS-006 | O que pode ser? | Diagnóstico Diferencial Assistido | EPIC | `java`, `ollama`, `chain-of-thought` | `prompt-engineering`, `confidence-calibration`, `domain-slm` |
+| PS-007 | Está melhorando? | Monitor de Sinais Vitais em Tempo Real | EPIC | `java`, `streaming`, `sse`, `algorithms` | `hero-builder` |
+| PS-008 | O que fazemos? | Sugestão de Conduta Inicial | LEGENDARY | `architecture`, `clinical-reasoning`, `ai-integration` | `domain-slm`, `confidence-calibration`, `hero-builder` |
+
+> *Foundations sugeridas são soft gate — você pode pegar a quest sem elas,
+> mas vai sentir falta. Ver [`quests/FOUNDATIONS_TRACK.md`](../../FOUNDATIONS_TRACK.md).*
 
 ---
 

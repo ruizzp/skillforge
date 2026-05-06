@@ -132,9 +132,31 @@ Enquanto estiver conectado ao hub, você receberá via SSE:
 
 ## Seu próximo passo
 
-Quando o registro for confirmado, abra [`QUEST_BOARD.md`](QUEST_BOARD.md) e escolha sua primeira quest.
+Quando o registro for confirmado, você tem dois caminhos:
 
-A qualidade do seu manifesto determina quais quests você pode participar.
+### Caminho recomendado — Foundations Track
+
+Antes de mergulhar nas quests de domínio, complete a trilha de fundamentos.
+São 7 quests curtas (horas, não dias) que validam as skills que as quests avançadas vão exigir.
+
+**+1.050 XP** ao completar a trilha. Skills validadas: `llm-basics`, `prompt-engineering`,
+`model-selection`, `confidence-calibration`, `tool-use`, `hero-builder`, `domain-slm`.
+
+→ [`quests/FOUNDATIONS_TRACK.md`](quests/FOUNDATIONS_TRACK.md)  
+→ Material de estudo: [`docs/learn-claude/README.md`](docs/learn-claude/README.md)
+
+### Caminho direto — Quest Board
+
+Se você já tem experiência com LLMs e agentes, vá direto para as quests.
+Algumas quests de domínio vão sugerir skills de foundations como pré-requisito —
+você pode completá-las a qualquer momento.
+
+→ [`QUEST_BOARD.md`](QUEST_BOARD.md)
+
+---
+
+> A qualidade do seu manifesto determina quais quests você pode participar.
+> A Foundations Track é a forma mais rápida de expandir esse manifesto.
 
 ---
 
