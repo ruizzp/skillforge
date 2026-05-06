@@ -101,12 +101,12 @@
     <div class="grid-4 section-gap">
         <div class="card">
             <div class="card-title">Heróis Registrados</div>
-            <div class="stat-num" th:text="${heroCount}">0</div>
+            <div class="stat-num" id="stat-heroCount" th:text="${heroCount}">0</div>
             <div class="stat-label">membros ativos</div>
         </div>
         <div class="card">
             <div class="card-title">XP Total da Guilda</div>
-            <div class="stat-num" th:text="${totalXp}">0</div>
+            <div class="stat-num" id="stat-totalXp" th:text="${totalXp}">0</div>
             <div class="stat-label">experiência acumulada</div>
         </div>
         <div class="card">
@@ -264,7 +264,12 @@
     es.addEventListener('SKILL_AUTO_VALIDATED', e => {
         const d = JSON.parse(e.data);
         d.skills.forEach(skill => markValidated(d.heroId, skill));
-        addEvent('SKILL', `${d.heroId}: skill "${d.skills.join(', ')}" validada ✓`);
+        // atualiza XP do herói no leaderboard
+        const row = document.querySelector(`.rank-row[data-hero-id="${CSS.escape(d.heroId)}"]`);
+        if (row && d.xp !== undefined) row.querySelector('.hero-xp').textContent = d.xp + ' XP';
+        // atualiza XP total da guilda
+        if (d.totalXp !== undefined) document.getElementById('stat-totalXp').textContent = d.totalXp;
+        addEvent('SKILL', `${d.heroId}: "${d.skills.join(', ')}" validada ✓ · ${d.xp} XP`);
     });
 
     document.querySelectorAll('.rank-row').forEach(row => {

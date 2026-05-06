@@ -115,9 +115,10 @@ public class SolutionConsumer {
             String skillsJson = validated.stream()
                     .map(s -> "\"" + s + "\"")
                     .collect(java.util.stream.Collectors.joining(",", "[", "]"));
+            int newXp = registry.getHeroById(msg.heroId()).map(h -> h.xp()).orElse(0);
             dashboard.broadcast("SKILL_AUTO_VALIDATED",
-                    "{\"heroId\":\"%s\",\"questId\":\"%s\",\"skills\":%s}"
-                            .formatted(msg.heroId(), msg.questId(), skillsJson));
+                    "{\"heroId\":\"%s\",\"questId\":\"%s\",\"skills\":%s,\"xp\":%d,\"totalXp\":%d}"
+                            .formatted(msg.heroId(), msg.questId(), skillsJson, newXp, registry.getTotalXp()));
         }
     }
 }
