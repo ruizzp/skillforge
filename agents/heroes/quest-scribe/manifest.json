@@ -1,0 +1,10 @@
+{
+  "heroId":    "quest-scribe",
+  "heroName":  "Quest Scribe",
+  "heroClass": "Scribe",
+  "skills":    ["quest-design", "domain-modeling", "clinical-reasoning", "fixture-generation"],
+  "specialty": "Transforma contexto de domínio em quests estruturadas com fixtures e critérios de aceitação",
+  "endpoint":  "http://localhost:8090",
+  "model":     "claude-sonnet-4-6",
+  "validatorModel": "meditron"
+}
