@@ -62,12 +62,16 @@ public class GuildService {
     }
 
     public List<String> getValidatedSkills() {
+        return ownMember().map(GuildMember::validatedSkills).orElse(List.of());
+    }
+
+    public int getOwnXp() {
+        return ownMember().map(GuildMember::xp).orElse(manifest.get() != null ? manifest.get().xp() : 0);
+    }
+
+    private java.util.Optional<GuildMember> ownMember() {
         String myId = manifest.get() != null ? manifest.get().heroId() : "";
-        return members.get().stream()
-                .filter(m -> m.heroId().equals(myId))
-                .findFirst()
-                .map(GuildMember::validatedSkills)
-                .orElse(List.of());
+        return members.get().stream().filter(m -> m.heroId().equals(myId)).findFirst();
     }
 
     public Map<QuestRarity, Long> getQuestCountByRarity() {

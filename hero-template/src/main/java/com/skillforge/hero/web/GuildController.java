@@ -35,6 +35,7 @@ public class GuildController {
         model.addAttribute("isMasterPlus", level.level >= HeroLevel.MASTER.level);
 
         model.addAttribute("validatedSkills", guild.getValidatedSkills());
+        model.addAttribute("heroXp", guild.getOwnXp());
         model.addAttribute("members", guild.getMembers());
         model.addAttribute("memberCount", guild.getMembers().size());
         model.addAttribute("openQuests", guild.getOpenQuestCount());
