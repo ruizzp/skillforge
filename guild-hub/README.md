@@ -66,6 +66,79 @@ O primeiro caminho que responder com conteúdo válido é usado.
 
 ---
 
+## Roteamento e despacho de quests
+
+O hub elege qual herói resolve qual quest com base na interseção de skills e disponibilidade online.
+
+```
+GET /api/routing
+  └─ QuestRoutingService.buildRoutingTable()
+       ├─ para cada quest aberta: encontra heroes com skill intersection > 0
+       ├─ ordena: online primeiro, depois por maior interseção
+       └─ retorna: [ { questId, questTitle, routingKey, candidates[], elected } ]
+
+POST /api/routing/{questId}/dispatch?submittedBy={login}
+  └─ QuestRoutingService.dispatch(questId, submittedBy)
+       ├─ valida: elected hero está online?
+       ├─ constrói ProblemMessage com questUrl + questBody completo
+       └─ publica no exchange "skillforge" com routingKey "problem.{skill}"
+```
+
+### Normalização de skills
+
+Labels no GitHub usam espaço (`"narrative design"`); manifests usam hífen (`"narrative-design"`). O roteador normaliza ambos os lados antes de comparar:
+
+```java
+private static String normalizeSkill(String skill) {
+    return skill.toLowerCase().replace(' ', '-').trim();
+}
+```
+
+Heróis que não normalizarem as skills do manifest **não** aparecerão como candidatos.
+
+---
+
+## Ciclo completo: despacho → artefato → solução
+
+```
+Dashboard  →  POST /api/routing/{questId}/dispatch
+                └─ hub publica ProblemMessage(questId, problem, requiredSkills,
+                     xpReward, submittedBy, questUrl, questBody)
+                     routing-key: "problem.{normalizedSkill}"
+                          └─ hero recebe via @RabbitListener
+                               ├─ constrói ProjectBrief a partir de questBody
+                               ├─ gera artefatos (Claude API 0.8)
+                               ├─ valida artefatos (Claude API 0.1, persona investidor)
+                               ├─ posta resultado como comentário na issue GitHub
+                               └─ publica SolutionMessage(questId, heroId, confidence)
+                                    routing-key: "solution.{skill}"
+                                         └─ SolutionConsumer (hub)
+                                              ├─ broadcast SSE SOLUTION_RECEIVED
+                                              └─ confidence ≥ threshold?
+                                                   └─ sim → github.validateSkill()
+                                                             broadcast SKILL_AUTO_VALIDATED
+```
+
+**Persistência dos artefatos:** cada herói é responsável por postar os artefatos como comentário na issue da quest. O hub não armazena o conteúdo — o GitHub Issue é o banco de dados.
+
+---
+
+## Sincronização manual (refresh)
+
+```
+POST /api/refresh
+  ├─ registry.refresh()    → re-lê issues hero+registered do GitHub
+  └─ questBoard.refresh()  → re-lê issues quest do GitHub
+
+Dashboard (botão ⟳)
+  └─ chama POST /api/refresh
+       └─ após resposta: recarrega /api/routing e atualiza painel
+
+Auto-refresh configurável: manual / 30s / 1min / 5min  (padrão: 1min)
+```
+
+---
+
 ## API REST
 
 Base: `http://localhost:8080/api`
@@ -80,6 +153,9 @@ Base: `http://localhost:8080/api`
 | `GET` | `/stats` | Estatísticas completas da guilda |
 | `POST` | `/heroes/{heroId}/skills/{skill}/validate` | Envia desafio AMQP ao herói; valida se resposta ≥ threshold |
 | `GET` | `/presence` | Status online/offline dos heróis em tempo real |
+| `GET` | `/routing` | Tabela de roteamento: quests × heroes × skills |
+| `POST` | `/routing/{questId}/dispatch` | Despacha quest para o herói eleito |
+| `POST` | `/refresh` | Força re-sync imediato com GitHub (sem esperar ciclo de 5min) |
 | `GET` | `/health` | Health check |
 | `GET` | `/events` | SSE stream de eventos em tempo real |
 
@@ -145,6 +221,8 @@ O threshold padrão é `0.75` (75% de confiança). Configurável via `SKILL_CONF
 
 ## Presença dos heróis
 
+> **Para quem desenvolve um hero:** heartbeat é obrigatório para aparecer no painel de roteamento. Sem heartbeat o hero existe no leaderboard mas nunca é eleito como candidato. Veja o padrão `HeartbeatPublisher` no `hero-template` ou no `hero-marketing`.
+
 O hub rastreia quais heróis estão online em tempo real via heartbeats AMQP.
 
 ```
@@ -178,6 +256,7 @@ Conecte em `GET /events` para receber eventos conforme ocorrem.
 | `FORK_DISCOVERED` | Fork com manifest configurado detectado | `{heroId, heroName, forkOwner, issueNumber}` |
 | `HERO_ONLINE` | Hero envia primeiro heartbeat (ou volta online) | `{heroId, heroName}` |
 | `HERO_OFFLINE` | Hero para de enviar heartbeat por mais de `HEARTBEAT_TIMEOUT_MS` | `{heroId, heroName}` |
+| `QUEST_ROUTED` | Quest despachada para um herói | `{questId, heroId, heroName, routingKey}` |
 | `SOLUTION_RECEIVED` | Hero resolve uma quest via AMQP | `{questId, heroId, heroName, confidence}` |
 | `SKILL_AUTO_VALIDATED` | Skill validada automaticamente após solução confiável | `{heroId, questId, skills[]}` |
 | `QUEST_UNLOCKED` | Quest criada (futuro) | `{rarity, title, xpReward}` |
