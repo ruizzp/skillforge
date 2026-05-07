@@ -5,10 +5,9 @@ spring:
   application:
     name: guild-quest
   rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USER:guest}
-    password: ${RABBITMQ_PASS:guest}
+    addresses: ${AMQP_URL}
+    ssl:
+      enabled: ${AMQP_SSL_ENABLED:false}
 
 anthropic:
   api-key: ${ANTHROPIC_API_KEY:}
@@ -25,8 +24,8 @@ skillforge:
   quests:
     root: ${SKILLFORGE_QUESTS_ROOT:quests}
   quest:
-    validator-model: ${VALIDATOR_MODEL:meditron}
-    confidence-threshold: 0.75
+    validator-model:      ${VALIDATOR_MODEL:meditron}
+    confidence-threshold: ${CONFIDENCE_THRESHOLD:0.75}
 
 logging:
   level:
