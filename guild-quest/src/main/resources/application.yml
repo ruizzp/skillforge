@@ -1,0 +1,34 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: guild-quest
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:}
+
+hero:
+  ollama:
+    url: ${OLLAMA_URL:http://localhost:11434}
+
+skillforge:
+  github:
+    token: ${GITHUB_TOKEN:}
+    owner: ${GITHUB_OWNER:}
+    repo:  ${GITHUB_REPO:skillforge}
+  quests:
+    root: ${SKILLFORGE_QUESTS_ROOT:quests}
+  quest:
+    validator-model: ${VALIDATOR_MODEL:meditron}
+    confidence-threshold: 0.75
+
+logging:
+  level:
+    com.skillforge: INFO
+    org.apache.catalina.connector: WARN

@@ -1,0 +1,9 @@
+{
+  "heroId":    "guild-quest",
+  "heroName":  "Guild Quest",
+  "heroClass": "Scribe",
+  "skills":    ["quest-design", "domain-modeling", "clinical-reasoning", "fixture-generation"],
+  "specialty": "Cria e publica quests estruturadas a partir de contexto de domínio via Claude API + validação por SLM especializado",
+  "endpoint":  "http://localhost:8090",
+  "model":     "claude-sonnet-4-6"
+}
