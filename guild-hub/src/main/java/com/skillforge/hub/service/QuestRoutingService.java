@@ -101,26 +101,35 @@ public class QuestRoutingService {
         return Optional.of(route.elected());
     }
 
+    // "narrative design" e "narrative-design" devem ser tratados como a mesma skill
+    private static String normalizeSkill(String skill) {
+        return skill.toLowerCase().replace(' ', '-').trim();
+    }
+
     private QuestRoute routeQuest(Quest quest, List<GuildMember> heroes, Set<String> onlineIds) {
+        Set<String> normalizedQuestSkills = quest.requiredSkills().stream()
+            .map(QuestRoutingService::normalizeSkill)
+            .collect(Collectors.toSet());
+
         List<HeroMatch> candidates = heroes.stream()
             .map(h -> {
                 List<String> matched = h.skills().stream()
-                    .filter(s -> quest.requiredSkills().contains(s))
+                    .filter(s -> normalizedQuestSkills.contains(normalizeSkill(s)))
                     .toList();
                 return matched.isEmpty() ? null
                     : new HeroMatch(h.heroId(), h.heroName(), matched, onlineIds.contains(h.heroId()));
             })
             .filter(Objects::nonNull)
             .sorted(Comparator
-                .comparingInt((HeroMatch m) -> m.online() ? 0 : 1)  // online first
-                .thenComparingInt(m -> -m.matchedSkills().size()))   // more skills = better
+                .comparingInt((HeroMatch m) -> m.online() ? 0 : 1)
+                .thenComparingInt(m -> -m.matchedSkills().size()))
             .toList();
 
         HeroMatch elected = candidates.stream().filter(HeroMatch::online).findFirst().orElse(null);
 
-        // routing key = problem.{primarySkill} — usa a primeira skill da quest que algum hero tem
-        String primarySkill = elected != null ? elected.matchedSkills().get(0)
-            : (quest.requiredSkills().isEmpty() ? "general" : quest.requiredSkills().get(0));
+        // routing key normalizada: "narrative design" → "problem.narrative-design"
+        String primarySkill = elected != null ? normalizeSkill(elected.matchedSkills().get(0))
+            : (quest.requiredSkills().isEmpty() ? "general" : normalizeSkill(quest.requiredSkills().get(0)));
         String routingKey = "problem." + primarySkill;
 
         return new QuestRoute(
