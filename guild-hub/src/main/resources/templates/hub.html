@@ -22,6 +22,14 @@
         .topbar-brand span { color: var(--text3); font-weight: 400; }
         .hub-badge { background: var(--bg3); border: 1px solid var(--accent); border-radius: 4px; padding: 2px 10px; font-size: 11px; color: var(--accent2); letter-spacing: 0.06em; }
 
+        .refresh-bar { display: flex; align-items: center; gap: 8px; }
+        .refresh-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 4px 12px; font-size: 11px; color: var(--text2); cursor: pointer; font-family: var(--mono); transition: border-color 0.15s, color 0.15s; }
+        .refresh-btn:hover { border-color: var(--accent); color: var(--accent2); }
+        .refresh-btn.spinning { color: var(--accent2); border-color: var(--accent); }
+        .refresh-select { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 11px; color: var(--text2); font-family: var(--mono); cursor: pointer; }
+        .refresh-select:focus { outline: none; border-color: var(--accent); }
+        .refresh-last { font-size: 10px; color: var(--text3); }
+
         .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
@@ -92,7 +100,17 @@
 
 <div class="topbar">
     <div class="topbar-brand">SKILL<span>FORGE</span></div>
-    <span class="hub-badge">GUILD HUB</span>
+    <div class="refresh-bar">
+        <span class="refresh-last" id="refresh-last">—</span>
+        <select class="refresh-select" id="refresh-interval" onchange="setAutoRefresh(this.value)">
+            <option value="0">manual</option>
+            <option value="30">30s</option>
+            <option value="60" selected>1min</option>
+            <option value="300">5min</option>
+        </select>
+        <button class="refresh-btn" id="refresh-btn" onclick="doRefresh()">⟳ refresh</button>
+        <span class="hub-badge">GUILD HUB</span>
+    </div>
 </div>
 
 <div class="container">
@@ -223,6 +241,44 @@
 </div>
 
 <script>
+    // ── Auto-refresh ─────────────────────────────────────────────────────────
+    let refreshTimer = null;
+
+    async function doRefresh() {
+        const btn = document.getElementById('refresh-btn');
+        btn.textContent = '⟳ atualizando...';
+        btn.classList.add('spinning');
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/refresh', { method: 'POST' });
+            if (res.ok) {
+                const d = await res.json();
+                document.getElementById('stat-heroCount').textContent = d.heroes;
+                document.getElementById('stat-totalXp').textContent   = d.totalXp;
+                const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                document.getElementById('refresh-last').textContent = 'sync ' + now;
+                // recarrega a página para atualizar leaderboard e quests (SSR)
+                setTimeout(() => location.reload(), 400);
+            }
+        } catch (e) {
+            btn.textContent = '⟳ erro';
+        } finally {
+            btn.classList.remove('spinning');
+            btn.disabled = false;
+        }
+    }
+
+    function setAutoRefresh(seconds) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+        const s = parseInt(seconds, 10);
+        if (s > 0) refreshTimer = setInterval(doRefresh, s * 1000);
+    }
+
+    // inicia com o valor padrão do select (1min)
+    setAutoRefresh(document.getElementById('refresh-interval').value);
+
+    // ── SSE ──────────────────────────────────────────────────────────────────
     const feed = document.getElementById('event-feed');
     const status = document.getElementById('sse-status');
     const es = new EventSource('/events');

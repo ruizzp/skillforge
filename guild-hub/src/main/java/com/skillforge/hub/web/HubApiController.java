@@ -201,6 +201,18 @@ public class HubApiController {
         return ResponseEntity.ok(forkWatcher.scanAndRegister(true));
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh() {
+        registry.refresh();
+        questBoard.refresh();
+        return ResponseEntity.ok(Map.of(
+            "heroes",         registry.getHeroes().size(),
+            "openQuests",     questBoard.getOpenQuests().size(),
+            "completedQuests", questBoard.getCompletedQuests().size(),
+            "totalXp",        registry.getTotalXp()
+        ));
+    }
+
     public record CreateQuestRequest(
             String title,
             String body,
