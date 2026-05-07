@@ -1,0 +1,17 @@
+{
+  "id": "PS-CASE-001",
+  "descricao": "SCA clássica — deve ser VERMELHO imediato",
+  "paciente": { "sexo": "M", "idade": 67, "peso_kg": 82 },
+  "queixa_principal": "Dor no peito há 2 horas, irradiando para o braço esquerdo. Suor frio.",
+  "sinais_vitais": {
+    "pa_sistolica": 160, "pa_diastolica": 95,
+    "fc": 110, "fr": 22, "spo2": 96, "temperatura": 36.8, "glasgow": 15
+  },
+  "historico": ["hipertensão", "diabetes tipo 2"],
+  "medicamentos_em_uso": ["metformina 850mg", "losartana 50mg"],
+  "gabarito": {
+    "urgencia_manchester": 1,
+    "cor": "VERMELHO",
+    "justificativa": "Dor torácica com irradiação + diaforese + FC elevada — suspeita de SCA. Red flag automático."
+  }
+}

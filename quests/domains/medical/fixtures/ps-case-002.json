@@ -1,0 +1,17 @@
+{
+  "id": "PS-CASE-002",
+  "descricao": "Dispneia grave — LARANJA",
+  "paciente": { "sexo": "F", "idade": 45, "peso_kg": 68 },
+  "queixa_principal": "Falta de ar progressiva há 30 minutos, não consigo falar frases completas.",
+  "sinais_vitais": {
+    "pa_sistolica": 130, "pa_diastolica": 85,
+    "fc": 118, "fr": 28, "spo2": 88, "temperatura": 37.1, "glasgow": 15
+  },
+  "historico": ["asma"],
+  "medicamentos_em_uso": ["salbutamol spray"],
+  "gabarito": {
+    "urgencia_manchester": 2,
+    "cor": "LARANJA",
+    "justificativa": "SpO2 88% é red flag automático. Dispneia com incapacidade de falar frases — muito urgente."
+  }
+}

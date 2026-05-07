@@ -1,5 +1,6 @@
 package com.skillforge.quest.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillforge.quest.domain.QuestDraft;
 import com.skillforge.quest.domain.QuestRequest;
 import com.skillforge.quest.domain.ValidationResult;
@@ -10,7 +11,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @RestController
@@ -19,22 +19,25 @@ public class QuestController {
     private final ProfileValidatorService profileValidator;
     private final QuestGuardianService guardian;
     private final QuestPublisherService publisher;
+    private final ObjectMapper mapper;
 
     public QuestController(ProfileValidatorService profileValidator,
                            QuestGuardianService guardian,
-                           QuestPublisherService publisher) {
+                           QuestPublisherService publisher,
+                           ObjectMapper mapper) {
         this.profileValidator = profileValidator;
         this.guardian = guardian;
         this.publisher = publisher;
+        this.mapper = mapper;
     }
 
     @GetMapping("/health")
     public Map<String, Object> health() {
-        var resource = new ClassPathResource("manifest.json");
         String heroId = "guild-quest";
         try {
-            heroId = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8)
-                .replaceAll(".*\"heroId\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+            var resource = new ClassPathResource("manifest.json");
+            var json = mapper.readTree(resource.getInputStream());
+            heroId = json.path("heroId").asText(heroId);
         } catch (Exception ignored) {}
         return Map.of("heroId", heroId, "status", "UP");
     }

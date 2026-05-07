@@ -1,0 +1,17 @@
+{
+  "id": "PS-CASE-004",
+  "descricao": "Febre sem alarme — VERDE",
+  "paciente": { "sexo": "M", "idade": 8, "peso_kg": 28 },
+  "queixa_principal": "Febre há 2 dias, 38.5°C em casa. Come bem, brincou hoje.",
+  "sinais_vitais": {
+    "pa_sistolica": 100, "pa_diastolica": 65,
+    "fc": 102, "fr": 20, "spo2": 98, "temperatura": 38.4, "glasgow": 15
+  },
+  "historico": [],
+  "medicamentos_em_uso": ["dipirona quando necessário"],
+  "gabarito": {
+    "urgencia_manchester": 4,
+    "cor": "VERDE",
+    "justificativa": "Febre sem sinais de alarme, criança ativa e alimentando — pouco urgente. FC levemente elevada pela febre."
+  }
+}

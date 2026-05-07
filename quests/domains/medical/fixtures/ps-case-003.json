@@ -1,0 +1,17 @@
+{
+  "id": "PS-CASE-003",
+  "descricao": "Dor abdominal intensa — AMARELO",
+  "paciente": { "sexo": "F", "idade": 32, "peso_kg": 61 },
+  "queixa_principal": "Dor na barriga do lado direito há 6 horas, piora ao andar.",
+  "sinais_vitais": {
+    "pa_sistolica": 118, "pa_diastolica": 76,
+    "fc": 94, "fr": 18, "spo2": 99, "temperatura": 38.1, "glasgow": 15
+  },
+  "historico": [],
+  "medicamentos_em_uso": [],
+  "gabarito": {
+    "urgencia_manchester": 3,
+    "cor": "AMARELO",
+    "justificativa": "Dor abdominal intensa com febre baixa — suspeita de apendicite. Urgente mas sem red flags imediatos."
+  }
+}

@@ -141,12 +141,10 @@ ollama pull meditron
 
 ---
 
-## Questões Abertas
+## Questões Resolvidas
 
-Decisões pendentes antes de finalizar as quests individuais:
-
-- [ ] **Escala própria ou Manchester?** — decisão: Manchester simplificado (já documentado acima)
-- [ ] **Quem valida os gabaritos clínicos iniciais?** — usando Meditron + literatura pública como referência
-- [ ] **Fixtures sintéticas vs manuais?** — decisão: manuais para casos canônicos, LLM para variações
-- [ ] **Internacionalização?** — quests em português, fixtures com nomes fictícios brasileiros
-- [ ] **Nível de detalhe farmacológico?** — definir teto de complexidade para quests COMMON vs EPIC
+- [x] **Escala própria ou Manchester?** — Manchester simplificado (5 cores, documentado acima)
+- [x] **Quem valida os gabaritos?** — Meditron via Ollama + literatura pública como referência
+- [x] **Fixtures sintéticas vs manuais?** — manuais para casos canônicos (ps-case-001 a 005), LLM para variações
+- [x] **Internacionalização?** — quests em português, fixtures com pacientes fictícios brasileiros, sem nome próprio
+- [x] **Nível de detalhe farmacológico?** — COMMON: classe e interação óbvia; EPIC: mecanismo e ajuste de dose

@@ -1,0 +1,17 @@
+{
+  "id": "PS-CASE-005",
+  "descricao": "Renovação de receita — AZUL",
+  "paciente": { "sexo": "F", "idade": 58, "peso_kg": 72 },
+  "queixa_principal": "Vim buscar receita de pressão, estou bem, sem queixas.",
+  "sinais_vitais": {
+    "pa_sistolica": 138, "pa_diastolica": 88,
+    "fc": 72, "fr": 16, "spo2": 99, "temperatura": 36.5, "glasgow": 15
+  },
+  "historico": ["hipertensão controlada"],
+  "medicamentos_em_uso": ["enalapril 10mg"],
+  "gabarito": {
+    "urgencia_manchester": 5,
+    "cor": "AZUL",
+    "justificativa": "Sem queixa aguda, sinais vitais estáveis, PA levemente elevada mas paciente assintomática — não urgente."
+  }
+}
