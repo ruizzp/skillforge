@@ -1,0 +1,21 @@
+server:
+  port: 8091
+
+spring:
+  application:
+    name: hero-marketing
+  rabbitmq:
+    addresses: ${AMQP_URL}
+    ssl:
+      enabled: ${AMQP_SSL_ENABLED:false}
+
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:}
+
+skillforge:
+  pitch:
+    confidence-threshold: ${CONFIDENCE_THRESHOLD:0.75}
+
+logging:
+  level:
+    com.skillforge: INFO

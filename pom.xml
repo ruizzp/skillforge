@@ -16,6 +16,7 @@
         <module>guild-hub</module>
         <module>hero-template</module>
         <module>guild-quest</module>
+        <module>hero-marketing</module>
     </modules>
 
     <properties>

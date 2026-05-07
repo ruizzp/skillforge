@@ -1,0 +1,57 @@
+### Hero Marketing — HTTP Tests
+### Base URL: http://localhost:8091
+### Requer: hero-marketing rodando com ANTHROPIC_API_KEY configurado
+
+@baseUrl = http://localhost:8091
+
+# ──────────────────────────────────────────────
+# HEALTH
+# ──────────────────────────────────────────────
+
+### Health check
+GET {{baseUrl}}/health
+Accept: application/json
+
+# Esperado: {"heroId":"hero-marketing","status":"UP"}
+
+# ──────────────────────────────────────────────
+# PITCH GENERATION — SKILLFORGE
+# ──────────────────────────────────────────────
+
+### Gera pitch completo para o SkillForge
+POST {{baseUrl}}/api/pitch
+Content-Type: application/json
+
+{
+  "projectId":    "skillforge",
+  "projectName":  "SkillForge",
+  "problem":      "Devs declaram skills no currículo mas ninguém valida. Times contratam errado. Projetos atrasam.",
+  "audiences":    ["dev senior buscando visibilidade", "CTO de startup", "angel investor em infra de IA"],
+  "differentiator": "Skills validadas por desafios reais com IA, registradas publicamente no GitHub — não por endorsements ou autodeclaração",
+  "traction":     "Sistema rodando com quests publicadas via API, hero de IA publicando issues no GitHub automaticamente",
+  "revenueModel": "Freemium: quests públicas gratuitas + guild membership pago R$ 97/mês para times de 10+",
+  "cta":          "Entre na guild de fundadores — as primeiras 50 vagas têm XP em dobro",
+  "context":      "Plataforma funcional com hub de roteamento, domínio médico em construção"
+}
+
+# Esperado: valid:true, confidence >= 0.75, guildPitch e investorOnePager preenchidos
+
+###
+
+### Testa guardrail — projeto sem diferencial deve reprovar ou retornar flags
+POST {{baseUrl}}/api/pitch
+Content-Type: application/json
+
+{
+  "projectId":    "devmatch-generic",
+  "projectName":  "DevMatch",
+  "problem":      "É difícil encontrar bons devs",
+  "audiences":    ["empresas"],
+  "differentiator": "Somos mais rápidos e mais baratos que as outras plataformas",
+  "traction":     "Temos um time incrível",
+  "revenueModel": "Freemium",
+  "cta":          "Entre em contato para saber mais",
+  "context":      ""
+}
+
+# Esperado: valid:false ou diferencial_defensavel:false, scores baixos

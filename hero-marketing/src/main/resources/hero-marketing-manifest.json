@@ -1,0 +1,10 @@
+{
+  "heroId":       "hero-marketing",
+  "heroName":     "Hero Marketing",
+  "heroClass":    "Agency",
+  "skills":       ["pitch-scribe", "narrative-design", "audience-segmentation", "structured-writing"],
+  "specialty":    "Gera e valida documentos de pitch para devs e investidores a partir de um project brief",
+  "endpoint":     "http://localhost:8091",
+  "model":        "claude-sonnet-4-6",
+  "domain":       "agency"
+}

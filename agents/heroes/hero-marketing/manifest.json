@@ -1,0 +1,12 @@
+{
+  "heroId":       "hero-marketing",
+  "heroName":     "Hero Marketing",
+  "heroClass":    "Agency",
+  "skills":       ["pitch-scribe", "narrative-design", "audience-segmentation", "structured-writing"],
+  "specialty":    "Transforma um project brief em dois documentos de pitch distintos — um para devs, outro para investidores — e valida ambos com persona de angel investor",
+  "endpoint":     "http://localhost:8091",
+  "model":        "claude-sonnet-4-6",
+  "validatorModel": "claude-sonnet-4-6",
+  "domain":       "agency",
+  "amqpRoutingKey": "problem.pitch-design"
+}
