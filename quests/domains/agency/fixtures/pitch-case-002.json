@@ -1,0 +1,32 @@
+{
+  "id": "pitch-case-002",
+  "label": "RUIM — pitch sem diferencial defensável",
+  "projeto": {
+    "nome": "DevMatch",
+    "problema_que_resolve": "É difícil encontrar bons devs",
+    "publico_alvo": ["empresas que contratam devs"],
+    "diferencial": "Somos mais rápidos e mais baratos que as outras plataformas",
+    "estado_atual": "Em desenvolvimento. Lançamento previsto para o próximo trimestre.",
+    "modelo_de_crescimento": "Vamos crescer com marketing digital e parcerias estratégicas",
+    "prova_de_tracao": "Temos um time incrível e muito comprometido",
+    "cta": "Entre em contato para saber mais"
+  },
+  "avaliacao_esperada": {
+    "scores": {
+      "clareza": 4,
+      "dor": 3,
+      "diferencial": 1,
+      "credibilidade": 1
+    },
+    "diferencial_defensavel": false,
+    "cta_presente": false,
+    "objecoes_nao_respondidas": [
+      "O que exatamente vocês fazem diferente do LinkedIn ou Upwork?",
+      "'Mais rápido e mais barato' não é diferencial — qualquer concorrente pode dizer o mesmo",
+      "Qual evidência de que funciona? Time comprometido não é tração",
+      "CTA vago — 'entre em contato' não direciona nenhuma ação específica",
+      "O problema existe, mas está descrito de forma genérica demais para justificar investimento"
+    ],
+    "avaliacao": "Pitch genérico sem diferencial real. 'Mais rápido e mais barato' é o que todo concorrente promete. Sem tração, sem prova, sem motivo para acreditar que esse time vai ganhar. Não passa para próxima rodada."
+  }
+}

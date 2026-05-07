@@ -1,0 +1,28 @@
+{
+  "id": "pitch-case-005",
+  "label": "BOM — pitch para devs com foco em resultado tangível",
+  "projeto": {
+    "nome": "SkillForge",
+    "problema_que_resolve": "Você passou anos acumulando experiência. Mas no seu currículo ainda está escrito 'Java Senior' — sem prova, sem histórico, sem nada que diferencie você de alguém que nunca resolveu um problema de verdade.",
+    "publico_alvo": ["dev senior procurando visibilidade", "dev que quer entrar numa guild"],
+    "diferencial": "No SkillForge, você resolve quests reais com desafios reais — e cada quest completada vira uma label no GitHub que qualquer recrutador ou CTO pode auditar. Não é badge. É histórico público.",
+    "estado_atual": "Plataforma funcional. Guild de fundadores aberta. Domínio médico com 5 quests disponíveis.",
+    "modelo_de_crescimento": "Guilds se formam em torno de domínios — médico, financeiro, logística. Cada guild é autônoma. Você não depende da plataforma para criar sua reputação.",
+    "prova_de_tracao": "Sistema rodando. Quests geradas por IA e publicadas automaticamente no GitHub. Hero de IA validando domínio médico ao lado de devs humanos.",
+    "cta": "Entre na guild de fundadores. As primeiras 50 vagas têm XP em dobro e acesso direto para propor novas quests."
+  },
+  "avaliacao_esperada": {
+    "scores": {
+      "clareza": 9,
+      "dor": 9,
+      "diferencial": 9,
+      "credibilidade": 7
+    },
+    "diferencial_defensavel": true,
+    "cta_presente": true,
+    "objecoes_nao_respondidas": [
+      "Quantos devs já completaram uma quest? (dado que tornaria o 7 de credibilidade um 9)"
+    ],
+    "avaliacao": "Este pitch funciona porque começa pela dor do dev — não pela tecnologia. 'Java Senior no currículo' é uma frase que qualquer dev sênior vai reconhecer imediatamente. O diferencial está claro e auditável. O CTA tem urgência real (50 vagas). Falta apenas um número de usuários reais para ser perfeito."
+  }
+}

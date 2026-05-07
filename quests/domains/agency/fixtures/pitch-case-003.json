@@ -1,0 +1,30 @@
+{
+  "id": "pitch-case-003",
+  "label": "PARCIAL — diferencial real mas sem prova de tração",
+  "projeto": {
+    "nome": "GuildOps",
+    "problema_que_resolve": "Times distribuídos não sabem quem tem qual skill real. Squads formados errado atrasam projetos em 40% do tempo.",
+    "publico_alvo": ["CTO de empresa com times remotos", "tech lead"],
+    "diferencial": "Skills são validadas por código real — o sistema avalia o PR, não o currículo. Histórico público e auditável.",
+    "estado_atual": "Protótipo com validação de pull requests em Go e Python. Testando com 3 empresas em beta fechado.",
+    "modelo_de_crescimento": "Modelo freemium: guild pública gratuita, guild privada paga. Ticket médio projetado R$ 3.000/mês para times de 10+.",
+    "prova_de_tracao": "3 empresas em beta fechado. Sem MRR ainda — produto em validação.",
+    "cta": "Solicite acesso ao beta — vagas limitadas para times de até 20 devs"
+  },
+  "avaliacao_esperada": {
+    "scores": {
+      "clareza": 8,
+      "dor": 8,
+      "diferencial": 8,
+      "credibilidade": 5
+    },
+    "diferencial_defensavel": true,
+    "cta_presente": true,
+    "objecoes_nao_respondidas": [
+      "3 empresas em beta é tração, mas onde estão os resultados? O que mudou para esses times?",
+      "Projeção de R$ 3.000/mês é estimativa — sem dado real ainda",
+      "Como o sistema avalia um PR sem contexto do problema que ele resolve?"
+    ],
+    "avaliacao": "Diferencial real e defensável — validação por código, não por currículo, é uma posição clara. A dor está bem articulada com dado concreto (40%). O que falta é resultado do beta: uma empresa que conseguiu formar um squad melhor seria suficiente para passar para a próxima conversa."
+  }
+}

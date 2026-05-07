@@ -1,6 +1,6 @@
 # `QUEST-014` — SkillForge: Apresentação Formal do Projeto `EPIC` `+800 XP`
 
-**Domínio:** SkillForge (meta-quest — sobre o próprio projeto)
+**Domínio:** agency
 **Status:** `[ ]`
 **Skills requeridas:** `technical-leadership`, `product-thinking`, `communication`
 **Pergunta universal:** Como sabemos que funcionou? (a proposta foi compreendida e gerou interesse real)
@@ -126,17 +126,20 @@ Inclua ao menos 3 destas nos materiais, com evidência ou argumento:
 
 ## Critérios de Aceitação
 
-**Técnico:**
-- [ ] `docs/pitch/FOR_DEVS.md` criado e legível sem contexto prévio
-- [ ] `docs/pitch/FOR_COMPANIES.md` criado com estrutura de problema → solução → diferencial → oportunidade
-- [ ] `README.md` atualizado com seção `## Por que o SkillForge?` no topo
-- [ ] Nenhum dos documentos exige leitura de outro documento para fazer sentido
+**Estrutural** (verificação automática):
+- [ ] `docs/pitch/FOR_DEVS.md` criado — máx. 2 páginas, legível sem contexto prévio
+- [ ] `docs/pitch/FOR_COMPANIES.md` criado — estrutura: problema → solução → diferencial → oportunidade → CTA
+- [ ] `README.md` atualizado com seção `## Por que o SkillForge?` antes de qualquer instrução técnica
+- [ ] Nenhum documento exige leitura de outro para fazer sentido
+- [ ] CTA específico e acionável em cada documento (não "entre em contato")
 
-**Produto:**
-- [ ] Alguém sem contexto do projeto lê `FOR_DEVS.md` e consegue explicar o SkillForge com suas próprias palavras
-- [ ] `FOR_COMPANIES.md` responde as 3 perguntas dos fixtures (QUEST014-A, B, C)
-- [ ] O diferencial "skills validadas por IA, não autodeclaradas" aparece de forma clara em ambos os materiais
-- [ ] Pelo menos 3 oportunidades da tabela estão comunicadas com argumento concreto
+**Angel Investor** (validação por Claude com persona de investidor):
+- [ ] Score médio (clareza + dor + diferencial + credibilidade) ≥ 7.0 nos dois pitches
+- [ ] `diferencial_defensavel: true` em ambos — "skills validadas por IA, não autodeclaradas" está presente e claro
+- [ ] `FOR_COMPANIES.md` responde as 3 perguntas fatais dos fixtures (QUEST014-A, B, C) sem necessitar explicação adicional
+- [ ] Nenhuma das objeções dos fixtures (pitch-case-001 e pitch-case-005) está sem resposta
+- [ ] Mercado endereçável argumentado com dado concreto (não estimativa vaga)
+- [ ] Modelo de crescimento explica como escala sem custo linear
 
 ---
 

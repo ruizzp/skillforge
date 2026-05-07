@@ -1,0 +1,25 @@
+{
+  "id": "pitch-case-001",
+  "label": "BOM — pitch completo para angel investor",
+  "projeto": {
+    "nome": "SkillForge",
+    "problema_que_resolve": "Devs declaram skills no currículo, mas ninguém valida. Times contratam errado. Projetos atrasam.",
+    "publico_alvo": ["dev senior buscando visibilidade", "CTO de startup", "angel investor em infra de IA"],
+    "diferencial": "Skills validadas por desafios reais com IA, registradas publicamente no GitHub — não por endorsements ou autodeclaração",
+    "estado_atual": "Plataforma funcional com hub de roteamento de problemas, hero de IA operando, domínio médico em construção",
+    "modelo_de_crescimento": "Guilds são autônomas — a plataforma não precisa gerenciar cada guild. Escala como um protocolo, não como um serviço.",
+    "prova_de_tracao": "Sistema rodando com quests publicadas via API, hero publicando issues no GitHub automaticamente",
+    "cta": "Entre na guild de fundadores — as primeiras 50 vagas têm XP em dobro"
+  },
+  "avaliacao_esperada": {
+    "scores": {
+      "clareza": 9,
+      "dor": 8,
+      "diferencial": 9,
+      "credibilidade": 7
+    },
+    "diferencial_defensavel": true,
+    "cta_presente": true,
+    "avaliacao": "Proposta clara, diferencial real e defensável. Tração ainda pequena mas autêntica. O modelo de crescimento como protocolo é o argumento mais forte — escala sem custo linear é o que os investidores querem ouvir."
+  }
+}

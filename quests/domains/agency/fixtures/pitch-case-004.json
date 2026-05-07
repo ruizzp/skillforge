@@ -1,0 +1,32 @@
+{
+  "id": "pitch-case-004",
+  "label": "RUIM — jargão técnico que aliena o público",
+  "projeto": {
+    "nome": "HeroMesh",
+    "problema_que_resolve": "Falta de observabilidade em arquiteturas de microserviços orientadas a eventos com múltiplos bounded contexts e heterogeneidade de stacks poliglota.",
+    "publico_alvo": ["CTO", "investidor"],
+    "diferencial": "Utilizamos graph neural networks com atenção multi-head para correlacionar spans de OpenTelemetry com drift de latência em P99 across service mesh boundaries.",
+    "estado_atual": "MVP com suporte a Jaeger, Zipkin e OTLP. Testamos em ambiente k8s com service mesh Istio.",
+    "modelo_de_crescimento": "PLG com land-and-expand. Adoção bottom-up por SREs com upgrade para enterprise tier.",
+    "prova_de_tracao": "17 stars no GitHub. 2 PRs mergeados de contribuidores externos.",
+    "cta": "Instale o Helm chart e abra uma issue se encontrar problemas."
+  },
+  "avaliacao_esperada": {
+    "scores": {
+      "clareza": 2,
+      "dor": 4,
+      "diferencial": 5,
+      "credibilidade": 3
+    },
+    "diferencial_defensavel": false,
+    "cta_presente": false,
+    "objecoes_nao_respondidas": [
+      "Não entendi o problema sem 10 minutos de contexto técnico",
+      "O diferencial pode ser real mas está completamente inacessível para o público declarado (CTO e investidor)",
+      "17 stars e 2 PRs não são tração — são presença mínima",
+      "O CTA ('instale o Helm chart') é para dev, não para investidor",
+      "PLG com land-and-expand sem dado de conversão é só esperança"
+    ],
+    "avaliacao": "O produto pode ser tecnicamente interessante, mas o pitch é para engenheiros — não para os públicos declarados. Um CTO sem contexto de SRE vai abandonar na segunda frase. Reescreva começando pela dor do negócio, não pela solução técnica."
+  }
+}
