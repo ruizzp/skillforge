@@ -47,22 +47,11 @@ public class PitchController {
             Map<String, String> docs = generator.generate(brief);
             PitchDraft draft = validator.validate(docs.get("guildPitch"), docs.get("investorOnePager"));
 
-            if (!draft.valid()) {
-                return ResponseEntity.unprocessableEntity().body(Map.of(
-                    "valid",     false,
-                    "confidence", draft.confidence(),
-                    "veredicto", draft.veredicto(),
-                    "scores", Map.of(
-                        "clareza",       draft.clareza(),
-                        "dor",           draft.dor(),
-                        "diferencial",   draft.diferencial(),
-                        "credibilidade", draft.credibilidade()
-                    )
-                ));
-            }
-
-            return ResponseEntity.ok(Map.of(
-                "valid",                  true,
+            // Sempre retorna os documentos gerados + diagnóstico completo.
+            // HTTP 422 indica que o pitch não passou no threshold mas ainda entrega
+            // o conteúdo para que o dev possa iterar sobre o brief.
+            var body = Map.of(
+                "valid",                  draft.valid(),
                 "confidence",             draft.confidence(),
                 "diferencialDefensavel",  draft.diferencialDefensavel(),
                 "ctaPresente",            draft.ctaPresente(),
@@ -75,7 +64,11 @@ public class PitchController {
                 ),
                 "guildPitch",        draft.guildPitch(),
                 "investorOnePager",  draft.investorOnePager()
-            ));
+            );
+
+            return draft.valid()
+                ? ResponseEntity.ok(body)
+                : ResponseEntity.unprocessableEntity().body(body);
 
         } catch (Exception e) {
             log.error("Falha ao processar pitch: {}", e.getMessage());

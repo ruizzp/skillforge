@@ -28,8 +28,8 @@ Content-Type: application/json
   "problem":      "Devs declaram skills no currículo mas ninguém valida. Times contratam errado. Projetos atrasam.",
   "audiences":    ["dev senior buscando visibilidade", "CTO de startup", "angel investor em infra de IA"],
   "differentiator": "Skills validadas por desafios reais com IA, registradas publicamente no GitHub — não por endorsements ou autodeclaração",
-  "traction":     "Sistema rodando com quests publicadas via API, hero de IA publicando issues no GitHub automaticamente",
-  "revenueModel": "Freemium: quests públicas gratuitas + guild membership pago R$ 97/mês para times de 10+",
+  "traction":     "6 devs fundadores comprometidos. Plataforma funcional com quests geradas por IA e publicadas automaticamente no GitHub. Hero de IA operacional em produção. Meta: 50 devs beta nos primeiros 90 dias para validar retenção.",
+  "revenueModel": "Freemium: quests públicas gratuitas + guild membership pago R$ 97/mês para times de 10+ com analytics e roteamento privado de problemas",
   "cta":          "Entre na guild de fundadores — as primeiras 50 vagas têm XP em dobro",
   "context":      "Plataforma funcional com hub de roteamento, domínio médico em construção"
 }

@@ -22,57 +22,78 @@ public class PitchValidatorService {
     }
 
     /**
-     * Valida os dois documentos com persona de angel investor (temperatura baixa = cético).
-     * Confiança calculada a partir dos scores + flags estruturais.
+     * Valida cada documento com seu próprio validador:
+     * - Guild Pitch: persona de dev cético
+     * - Investor One-Pager: persona de angel investor
+     * Confidence calculada pela média ponderada dos dois scores.
      */
     public PitchDraft validate(String guildPitch, String investorOnePager) throws Exception {
-        String combined = "GUILD PITCH:\n" + guildPitch + "\n\nINVESTOR ONE-PAGER:\n" + investorOnePager;
-        log.info("Validando pitches com persona de angel investor");
+        log.info("Validando Guild Pitch com persona de dev cético");
+        JsonNode guildResult = callValidator("guild-pitch-validator-prompt.txt", guildPitch);
 
-        String raw = anthropic.generate("investor-validator-prompt.txt", combined, 0.1);
-        return parseValidation(raw, guildPitch, investorOnePager);
+        log.info("Validando Investor One-Pager com persona de angel investor");
+        JsonNode investorResult = callValidator("investor-validator-prompt.txt", investorOnePager);
+
+        return buildDraft(guildPitch, investorOnePager, guildResult, investorResult);
     }
 
-    private PitchDraft parseValidation(String raw, String guildPitch, String investorOnePager) {
-        try {
-            // Claude pode retornar o JSON dentro de um bloco markdown
-            String json = raw.contains("{") ? raw.substring(raw.indexOf("{"), raw.lastIndexOf("}") + 1) : raw;
-            JsonNode node = mapper.readTree(json);
-
-            double clareza        = node.path("scores").path("clareza").asDouble(5.0);
-            double dor            = node.path("scores").path("dor").asDouble(5.0);
-            double diferencial    = node.path("scores").path("diferencial").asDouble(5.0);
-            double credibilidade  = node.path("scores").path("credibilidade").asDouble(5.0);
-            boolean defens        = node.path("diferencial_defensavel").asBoolean(false);
-            boolean ctaOk         = node.path("cta_presente").asBoolean(false);
-            String veredicto      = node.path("veredicto").asText("");
-
-            double avg = (clareza + dor + diferencial + credibilidade) / 4.0;
-            double confidence = computeConfidence(avg, defens, ctaOk);
-            boolean valid = avg >= 6.0 && defens && ctaOk;
-
-            log.info("Validação concluída — avg score: {:.1f}, confidence: {:.2f}, valid: {}", avg, confidence, valid);
-            return new PitchDraft(guildPitch, investorOnePager,
-                clareza, dor, diferencial, credibilidade,
-                defens, ctaOk, veredicto, confidence, valid);
-
-        } catch (Exception e) {
-            log.error("Falha ao parsear resposta do validador: {}", e.getMessage());
-            return new PitchDraft(guildPitch, investorOnePager,
-                0, 0, 0, 0, false, false,
-                "Falha na validação: " + e.getMessage(), 0.0, false);
-        }
+    private JsonNode callValidator(String promptFile, String content) throws Exception {
+        String raw = anthropic.generate(promptFile, content, 0.1);
+        String json = raw.contains("{") ? raw.substring(raw.indexOf("{"), raw.lastIndexOf("}") + 1) : raw;
+        return mapper.readTree(json);
     }
 
-    private double computeConfidence(double avg, boolean diferencialDefensavel, boolean ctaPresente) {
-        double confidence = 0.85;
+    private PitchDraft buildDraft(String guildPitch, String investorOnePager,
+                                   JsonNode guildNode, JsonNode investorNode) {
+        // Scores do Guild Pitch (perspectiva dev)
+        double gClareza       = guildNode.path("scores").path("clareza").asDouble(5.0);
+        double gDor           = guildNode.path("scores").path("dor").asDouble(5.0);
+        double gDiferencial   = guildNode.path("scores").path("diferencial").asDouble(5.0);
+        double gCredibilidade = guildNode.path("scores").path("credibilidade").asDouble(5.0);
 
-        if (avg < 6.0)       return 0.0;
+        // Scores do Investor One-Pager (perspectiva investidor)
+        double iClareza       = investorNode.path("scores").path("clareza").asDouble(5.0);
+        double iDor           = investorNode.path("scores").path("dor").asDouble(5.0);
+        double iDiferencial   = investorNode.path("scores").path("diferencial").asDouble(5.0);
+        double iCredibilidade = investorNode.path("scores").path("credibilidade").asDouble(5.0);
+
+        // Média entre os dois documentos
+        double clareza       = (gClareza + iClareza) / 2.0;
+        double dor           = (gDor + iDor) / 2.0;
+        double diferencial   = (gDiferencial + iDiferencial) / 2.0;
+        double credibilidade = (gCredibilidade + iCredibilidade) / 2.0;
+
+        boolean defensavel = guildNode.path("diferencial_defensavel").asBoolean(false)
+                          && investorNode.path("diferencial_defensavel").asBoolean(false);
+        boolean ctaOk      = guildNode.path("cta_presente").asBoolean(false)
+                          && investorNode.path("cta_presente").asBoolean(false);
+
+        String veredictoGuild    = guildNode.path("veredicto").asText("");
+        String veredictoInvestor = investorNode.path("veredicto").asText("");
+        String veredicto = "Dev: " + veredictoGuild + " | Investidor: " + veredictoInvestor;
+
+        double avg = (clareza + dor + diferencial + credibilidade) / 4.0;
+        double confidence = computeConfidence(avg, defensavel, ctaOk);
+        boolean valid = avg >= 6.0 && defensavel && ctaOk;
+
+        log.info("Validação — avg: {:.1f} (guild avg: {:.1f} | investor avg: {:.1f}), confidence: {:.2f}, valid: {}",
+            avg,
+            (gClareza + gDor + gDiferencial + gCredibilidade) / 4.0,
+            (iClareza + iDor + iDiferencial + iCredibilidade) / 4.0,
+            confidence, valid);
+
+        return new PitchDraft(guildPitch, investorOnePager,
+            clareza, dor, diferencial, credibilidade,
+            defensavel, ctaOk, veredicto, confidence, valid);
+    }
+
+    private double computeConfidence(double avg, boolean defensavel, boolean ctaPresente) {
+        if (avg < 6.0) return 0.0;
+
+        double confidence = avg >= 8.5 ? 0.92 : 0.85;
         if (avg < 7.0)       confidence *= 0.80;
-        else if (avg > 8.5)  confidence = 0.92;
-
-        if (!diferencialDefensavel) confidence *= 0.70;
-        if (!ctaPresente)           confidence *= 0.80;
+        if (!defensavel)     confidence *= 0.70;
+        if (!ctaPresente)    confidence *= 0.80;
 
         return Math.round(confidence * 100.0) / 100.0;
     }

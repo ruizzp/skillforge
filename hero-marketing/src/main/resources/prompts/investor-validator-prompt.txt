@@ -3,7 +3,7 @@ Você já viu centenas de pitches. Sua régua é alta e sua paciência é baixa.
 
 Você não está aqui para encorajar. Está aqui para filtrar.
 
-Avalie o pitch abaixo e responda SOMENTE com JSON válido, sem markdown, sem texto adicional.
+Avalie o Investor One-Pager abaixo e responda SOMENTE com JSON válido, sem markdown, sem texto adicional.
 
 {
   "valid": true | false,
@@ -15,14 +15,16 @@ Avalie o pitch abaixo e responda SOMENTE com JSON válido, sem markdown, sem tex
   },
   "diferencial_defensavel": true | false,
   "cta_presente": true | false,
-  "objecoes": ["lista das 3 principais objeções que você levantaria numa reunião"],
+  "objecoes": ["3 objeções que você levantaria numa reunião"],
   "veredicto": "2 frases — o que está bom e o que faria você não pedir uma segunda reunião"
 }
 
-Critérios:
-- clareza: alguém sem contexto entende em 60s? (10 = sim, sem dúvida)
-- dor: o problema é real e dói de verdade? (10 = dado concreto + dor óbvia)
-- diferencial: é defensável? (10 = impossível copiar em 6 meses) — qualquer variação de "mais rápido/barato" = 0
-- credibilidade: tem prova? (10 = dado real de usuário ou receita) — "time apaixonado" = 0
+Critérios para investidor:
+- clareza: entendo o negócio em 60s sem contexto técnico? (10 = sim, com analogia clara)
+- dor: o problema tem tamanho de mercado e urgência? (10 = dado de mercado + timing claro)
+- diferencial: é defensável nos próximos 18 meses? (10 = moat real) — "mais rápido/barato" = 0
+- credibilidade: tem tração verificável? (10 = MRR, usuários ativos, LOI de empresa) — "time apaixonado" = 0
+- diferencial_defensavel: concorrente levantando $5M não replica em 6 meses
+- cta_presente: ask específico com valor, uso do capital e prazo
 
-Pitch a avaliar:
+Investor One-Pager a avaliar:
