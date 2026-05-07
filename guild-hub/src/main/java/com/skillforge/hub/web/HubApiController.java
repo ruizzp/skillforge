@@ -10,6 +10,7 @@ import com.skillforge.hub.registration.ForkWatcher;
 import com.skillforge.hub.service.HeroPresenceService;
 import com.skillforge.hub.service.HeroRegistryService;
 import com.skillforge.hub.service.QuestBoardService;
+import com.skillforge.hub.service.QuestRoutingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,16 +27,19 @@ public class HubApiController {
     private final GitHubClient github;
     private final ProblemPublisher problemPublisher;
     private final HeroPresenceService presence;
+    private final QuestRoutingService routing;
 
     public HubApiController(HeroRegistryService registry, QuestBoardService questBoard,
                             ForkWatcher forkWatcher, GitHubClient github,
-                            ProblemPublisher problemPublisher, HeroPresenceService presence) {
+                            ProblemPublisher problemPublisher, HeroPresenceService presence,
+                            QuestRoutingService routing) {
         this.registry = registry;
         this.questBoard = questBoard;
         this.forkWatcher = forkWatcher;
         this.github = github;
         this.problemPublisher = problemPublisher;
         this.presence = presence;
+        this.routing = routing;
     }
 
     @GetMapping("/heroes")
@@ -199,6 +203,27 @@ public class HubApiController {
     @PostMapping("/forks/scan")
     public ResponseEntity<List<ForkWatcher.ForkStatus>> triggerForkScan() {
         return ResponseEntity.ok(forkWatcher.scanAndRegister(true));
+    }
+
+    @GetMapping("/routing")
+    public ResponseEntity<?> routingTable() {
+        return ResponseEntity.ok(routing.buildRoutingTable());
+    }
+
+    @PostMapping("/routing/{questId}/dispatch")
+    public ResponseEntity<?> dispatch(@PathVariable String questId,
+                                      @RequestParam(defaultValue = "hub") String submittedBy) {
+        return routing.dispatch(questId, submittedBy)
+            .map(hero -> ResponseEntity.ok(Map.of(
+                "dispatched", true,
+                "heroId",     hero.heroId(),
+                "heroName",   hero.heroName(),
+                "matchedSkills", hero.matchedSkills()
+            )))
+            .orElseGet(() -> ResponseEntity.ok(Map.of(
+                "dispatched", false,
+                "reason",     "Nenhum hero online com skills compatíveis"
+            )));
     }
 
     @PostMapping("/refresh")

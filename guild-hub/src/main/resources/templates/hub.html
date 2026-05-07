@@ -89,6 +89,21 @@
         .reset-btn:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
         .reset-btn:disabled { opacity: 0.4; cursor: default; }
 
+        /* Routing */
+        .route-row { display: grid; grid-template-columns: 1fr 120px 1fr 80px; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+        .route-row:last-child { border-bottom: none; }
+        .route-quest { font-size: 12px; font-weight: 500; }
+        .route-quest small { display: block; font-size: 10px; color: var(--text3); font-weight: 400; margin-top: 2px; }
+        .route-key { font-family: var(--mono); font-size: 10px; color: var(--accent2); background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .route-hero { display: flex; align-items: center; gap: 6px; }
+        .route-hero-none { color: var(--text3); font-size: 11px; }
+        .dispatch-btn { font-size: 10px; padding: 3px 10px; border-radius: 4px; border: 1px solid var(--accent); background: transparent; color: var(--accent2); cursor: pointer; font-family: var(--mono); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+        .dispatch-btn:hover:not(:disabled) { background: var(--accent); color: #fff; }
+        .dispatch-btn:disabled { opacity: 0.4; cursor: default; }
+        .dispatch-btn.sent { border-color: var(--green); color: var(--green); }
+        .route-header { font-size: 10px; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; }
+        .no-routes { color: var(--text3); font-size: 12px; text-align: center; padding: 16px 0; }
+
         /* Events */
         .event-feed { font-size: 12px; color: var(--text2); max-height: 200px; overflow-y: auto; }
         .event-item { padding: 6px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; }
@@ -212,6 +227,20 @@
         </div>
     </div>
 
+    <!-- Quest Routing -->
+    <div class="card section-gap">
+        <div class="card-title">
+            Roteamento de Quests
+            <span style="float:right; font-size:10px; color:var(--text3);">quests abertas → hero eleito por skill</span>
+        </div>
+        <div id="routing-table">
+            <div class="route-row route-header">
+                <span>Quest</span><span>Routing Key</span><span>Hero Eleito</span><span></span>
+            </div>
+            <div class="no-routes" id="routing-empty">Carregando...</div>
+        </div>
+    </div>
+
     <!-- Live event feed -->
     <div class="card section-gap">
         <div class="card-title">
@@ -278,6 +307,83 @@
     // inicia com o valor padrão do select (1min)
     setAutoRefresh(document.getElementById('refresh-interval').value);
 
+    // ── Quest Routing ─────────────────────────────────────────────────────────
+    async function loadRoutingTable() {
+        try {
+            const res = await fetch('/api/routing');
+            if (!res.ok) return;
+            const routes = await res.json();
+            renderRoutingTable(routes);
+        } catch (e) { /* silencioso */ }
+    }
+
+    function renderRoutingTable(routes) {
+        const table = document.getElementById('routing-table');
+        const empty = document.getElementById('routing-empty');
+        // remove linhas antigas (mantém cabeçalho)
+        table.querySelectorAll('.route-data-row').forEach(r => r.remove());
+
+        if (!routes || routes.length === 0) {
+            empty.textContent = 'Nenhuma quest aberta.';
+            empty.style.display = 'block';
+            return;
+        }
+        empty.style.display = 'none';
+
+        routes.forEach(r => {
+            const row = document.createElement('div');
+            row.className = 'route-row route-data-row';
+            row.dataset.questId = r.questId;
+
+            const rarityColor = { COMMON:'var(--text2)', RARE:'#3b82f6', EPIC:'var(--purple)', LEGENDARY:'var(--yellow)' };
+            const color = rarityColor[r.rarity] || 'var(--text2)';
+            const xpLabel = r.xpReward > 0 ? `+${r.xpReward} XP · ` : '';
+
+            const heroCell = r.elected
+                ? `<div class="route-hero">
+                     <span class="presence-dot online"></span>
+                     <span>${r.elected.heroName}</span>
+                     ${r.elected.matchedSkills.map(s => `<span class="skill-pill-sm">${s}</span>`).join('')}
+                   </div>`
+                : `<span class="route-hero-none">— sem hero online</span>`;
+
+            const btnDisabled = !r.elected ? 'disabled' : '';
+            row.innerHTML = `
+                <div class="route-quest">
+                    <span style="color:${color}">${r.questTitle}</span>
+                    <small>${xpLabel}${r.requiredSkills.join(', ')}</small>
+                </div>
+                <span class="route-key">${r.routingKey}</span>
+                <div>${heroCell}</div>
+                <div>
+                    <button class="dispatch-btn" ${btnDisabled}
+                        onclick="dispatchQuest('${r.questId}', this)">▶ despachar</button>
+                </div>`;
+            table.appendChild(row);
+        });
+    }
+
+    async function dispatchQuest(questId, btn) {
+        btn.disabled = true;
+        btn.textContent = 'enviando...';
+        try {
+            const res = await fetch(`/api/routing/${encodeURIComponent(questId)}/dispatch`, { method: 'POST' });
+            const d = await res.json();
+            if (d.dispatched) {
+                btn.textContent = '✓ enviado';
+                btn.classList.add('sent');
+            } else {
+                btn.textContent = 'sem hero';
+                btn.disabled = false;
+            }
+        } catch (e) {
+            btn.textContent = 'erro';
+            btn.disabled = false;
+        }
+    }
+
+    loadRoutingTable();
+
     // ── SSE ──────────────────────────────────────────────────────────────────
     const feed = document.getElementById('event-feed');
     const status = document.getElementById('sse-status');
@@ -311,11 +417,19 @@
         const d = JSON.parse(e.data);
         setPresence(d.heroId, true);
         addEvent('ONLINE', `${d.heroName} está online`);
+        loadRoutingTable();
     });
     es.addEventListener('HERO_OFFLINE', e => {
         const d = JSON.parse(e.data);
         setPresence(d.heroId, false);
         addEvent('OFFLINE', `${d.heroName} foi offline`);
+        loadRoutingTable();
+    });
+    es.addEventListener('QUEST_ROUTED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('ROTEADO', `${d.questTitle} → ${d.heroName} via ${d.routingKey}`);
+        const btn = document.querySelector(`.dispatch-btn[onclick*="${d.questId}"]`);
+        if (btn) { btn.textContent = '✓ enviado'; btn.classList.add('sent'); btn.disabled = true; }
     });
     es.addEventListener('SKILL_AUTO_VALIDATED', e => {
         const d = JSON.parse(e.data);

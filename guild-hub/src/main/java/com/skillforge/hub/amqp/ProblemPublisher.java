@@ -16,7 +16,13 @@ public class ProblemPublisher {
         this.exchange = exchange;
     }
 
+    /** Publica com routing key genérica (legado). */
     public void publish(ProblemMessage msg) {
         rabbit.convertAndSend(exchange, "problem", msg);
+    }
+
+    /** Publica com routing key específica da skill — ex: problem.quest-design. */
+    public void publish(ProblemMessage msg, String routingKey) {
+        rabbit.convertAndSend(exchange, routingKey, msg);
     }
 }
