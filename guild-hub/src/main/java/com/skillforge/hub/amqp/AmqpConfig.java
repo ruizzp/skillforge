@@ -32,7 +32,7 @@ public class AmqpConfig {
 
     @Bean
     public Binding solutionsBinding(Queue solutionsQueue, TopicExchange skillforgeExchange) {
-        return BindingBuilder.bind(solutionsQueue).to(skillforgeExchange).with("solution");
+        return BindingBuilder.bind(solutionsQueue).to(skillforgeExchange).with("solution.#");
     }
 
     // Problems queue — hub publishes here, heroes consume
