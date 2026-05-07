@@ -81,8 +81,7 @@ public class QuestPublisherService {
 
             var response = http.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 201) {
-                // extrai html_url da resposta
-                String issueUrl = response.body().replaceAll(".*\"html_url\":\"([^\"]+)\".*", "$1");
+                String issueUrl = mapper.readTree(response.body()).path("html_url").asText("");
                 log.info("Quest publicada: {}", issueUrl);
                 return issueUrl;
             }
