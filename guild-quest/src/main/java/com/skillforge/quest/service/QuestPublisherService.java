@@ -1,5 +1,7 @@
 package com.skillforge.quest.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillforge.quest.domain.QuestDraft;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +12,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Publica a quest aprovada como GitHub Issue com as labels corretas.
@@ -34,6 +38,11 @@ public class QuestPublisherService {
     private double threshold;
 
     private final HttpClient http = HttpClient.newHttpClient();
+    private final ObjectMapper mapper;
+
+    public QuestPublisherService(ObjectMapper mapper) {
+        this.mapper = mapper;
+    }
 
     /**
      * Publica no GitHub se confidence >= threshold.
@@ -95,9 +104,39 @@ public class QuestPublisherService {
         return sb.toString();
     }
 
-    private String nextQuestId() {
-        // TODO: consultar GitHub para saber o próximo número disponível
-        return "QUEST";
+    /**
+     * Consulta todas as issues com label "quest" e retorna o próximo ID sequencial.
+     * Lê títulos no formato [QUEST-NNN] e incrementa o maior encontrado.
+     * Fallback para QUEST-001 se nenhuma quest existir ainda.
+     */
+    private String nextQuestId() throws Exception {
+        String url = "%s/repos/%s/%s/issues?labels=quest&state=all&per_page=100"
+            .formatted(API, owner, repo);
+
+        var request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .header("Authorization", "Bearer " + token)
+            .header("Accept", "application/vnd.github+json")
+            .GET().build();
+
+        var response = http.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            log.warn("Não foi possível consultar quests existentes ({}), usando QUEST-001", response.statusCode());
+            return "QUEST-001";
+        }
+
+        Pattern pattern = Pattern.compile("\\[QUEST-(\\d+)\\]");
+        int max = 0;
+
+        for (JsonNode issue : mapper.readTree(response.body())) {
+            String title = issue.path("title").asText("");
+            Matcher matcher = pattern.matcher(title);
+            if (matcher.find()) {
+                max = Math.max(max, Integer.parseInt(matcher.group(1)));
+            }
+        }
+
+        return "QUEST-%03d".formatted(max + 1);
     }
 
     private String jsonEscape(String text) {
