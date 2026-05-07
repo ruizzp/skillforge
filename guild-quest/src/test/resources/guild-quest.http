@@ -1,0 +1,89 @@
+### Guild Quest — HTTP Tests
+### Base URL: http://localhost:8090
+### Requer: guild-quest rodando com ANTHROPIC_API_KEY + GITHUB_TOKEN configurados
+
+@baseUrl = http://localhost:8090
+
+# ──────────────────────────────────────────────
+# HEALTH
+# ──────────────────────────────────────────────
+
+### Health check — confirma hero UP e heroId correto
+GET {{baseUrl}}/health
+Accept: application/json
+
+# Esperado: {"heroId":"guild-quest","status":"UP"}
+
+# ──────────────────────────────────────────────
+# DOMAIN VALIDATION (guardrail puro)
+# ──────────────────────────────────────────────
+
+### Valida domain profile médico — deve retornar 200 valid:true
+GET {{baseUrl}}/api/validate/medical
+Accept: application/json
+
+# Esperado: {"valid":true,"missing":[],"warnings":[]}
+
+### Valida domínio inexistente — deve retornar 422 com mensagem de bloqueio
+GET {{baseUrl}}/api/validate/financial
+Accept: application/json
+
+# Esperado: {"valid":false,"missing":["Domínio 'financial' não encontrado..."],"warnings":[]}
+
+# ──────────────────────────────────────────────
+# QUEST GENERATION
+# ──────────────────────────────────────────────
+
+### Gera quest RARE de triagem — fluxo completo com publicação no GitHub
+POST {{baseUrl}}/api/quest
+Content-Type: application/json
+
+{
+  "domain":    "medical",
+  "questType": "triagem",
+  "level":     "RARE",
+  "context":   "Paciente chega com queixa de dor torácica, dev aprende a classificar urgência pelo protocolo Manchester"
+}
+
+# Esperado: confidence >= 0.75, issueUrl preenchido, markdown com fixtures
+
+###
+
+### Gera quest COMMON de modelo de dados
+POST {{baseUrl}}/api/quest
+Content-Type: application/json
+
+{
+  "domain":    "medical",
+  "questType": "modelagem",
+  "level":     "COMMON",
+  "context":   "Dev aprende a modelar o paciente de urgência com sinais vitais e queixa principal"
+}
+
+###
+
+### Gera quest EPIC de diagnóstico diferencial
+POST {{baseUrl}}/api/quest
+Content-Type: application/json
+
+{
+  "domain":    "medical",
+  "questType": "diagnostico-diferencial",
+  "level":     "EPIC",
+  "context":   "Dev implementa pipeline de hipóteses diagnósticas com LLM e chain-of-thought a partir de queixa em texto livre"
+}
+
+###
+
+### Testa guardrail — domínio sem profile deve retornar 422
+POST {{baseUrl}}/api/quest
+Content-Type: application/json
+
+{
+  "domain":    "financial",
+  "questType": "compliance",
+  "level":     "RARE",
+  "context":   "Validação de transação suspeita"
+}
+
+# Esperado: 422 com "Domain profile incompleto"
