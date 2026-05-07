@@ -13,7 +13,7 @@ public class AmqpConfig {
 
     static final String QUEUE    = "hero-marketing.problems";
     static final String EXCHANGE = "skillforge";
-    static final String KEY      = "problem.pitch-design";
+    static final String KEY      = "problem.#";  // recebe qualquer problema roteado para skills deste hero
 
     @Bean
     Queue pitchQueue() {

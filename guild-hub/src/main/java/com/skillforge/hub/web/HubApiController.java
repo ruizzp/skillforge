@@ -158,7 +158,9 @@ public class HubApiController {
                             "Demonstre seu domínio de " + skill + " com um exemplo prático e objetivo.",
                             List.of(skill),
                             0,
-                            "skill-probe"
+                            "skill-probe",
+                            "",
+                            ""
                     );
                     problemPublisher.publish(probe);
                     return ResponseEntity.accepted()

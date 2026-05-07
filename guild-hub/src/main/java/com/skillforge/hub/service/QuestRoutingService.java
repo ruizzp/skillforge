@@ -87,7 +87,8 @@ public class QuestRoutingService {
 
         String routingKey = route.routingKey();
         publisher.publish(new ProblemMessage(
-            quest.id(), quest.title(), quest.requiredSkills(), quest.xpReward(), submittedBy
+            quest.id(), quest.title(), quest.requiredSkills(), quest.xpReward(), submittedBy,
+            quest.url(), quest.body()
         ), routingKey);
 
         log.info("Quest {} despachada para {} via {}", questId, route.elected().heroId(), routingKey);

@@ -7,5 +7,7 @@ public record ProblemMessage(
         String problem,
         List<String> requiredSkills,
         int xpReward,
-        String submittedBy
+        String submittedBy,
+        String questUrl,    // URL da issue no GitHub — para o hero postar o resultado
+        String questBody    // corpo completo da quest — contexto para geração
 ) {}

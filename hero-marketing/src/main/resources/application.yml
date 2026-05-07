@@ -19,6 +19,8 @@ guild:
     heartbeat-initial-delay-ms: 5000
 
 skillforge:
+  github:
+    token: ${GITHUB_TOKEN:}
   hero:
     id: hero-marketing
     name: Hero Marketing
