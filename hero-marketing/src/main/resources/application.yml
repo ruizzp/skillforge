@@ -12,7 +12,17 @@ spring:
 anthropic:
   api-key: ${ANTHROPIC_API_KEY:}
 
+guild:
+  amqp:
+    exchange: ${AMQP_EXCHANGE:skillforge}
+    heartbeat-interval-ms: 60000
+    heartbeat-initial-delay-ms: 5000
+
 skillforge:
+  hero:
+    id: hero-marketing
+    name: Hero Marketing
+    skills: pitch-scribe,narrative-design,audience-segmentation,structured-writing
   pitch:
     confidence-threshold: ${CONFIDENCE_THRESHOLD:0.75}
 

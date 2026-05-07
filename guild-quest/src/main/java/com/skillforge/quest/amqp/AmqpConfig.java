@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AmqpConfig {
 
-    static final String EXCHANGE    = "skillforge.topic";
+    static final String EXCHANGE    = "skillforge";
     static final String QUEST_QUEUE = "guild-quest.problems";
 
     @Bean TopicExchange exchange() {
@@ -22,7 +22,6 @@ public class AmqpConfig {
         return QueueBuilder.durable(QUEST_QUEUE).build();
     }
 
-    // escuta problemas endereçados a este hero ou com skill quest-design
     @Bean Binding questBinding(Queue questQueue, TopicExchange exchange) {
         return BindingBuilder.bind(questQueue).to(exchange).with("problem.quest-design");
     }
