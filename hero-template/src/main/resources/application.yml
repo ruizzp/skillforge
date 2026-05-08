@@ -18,7 +18,6 @@ guild:
     enabled: false  # nunca mude isso — o hub é um módulo separado (guild-hub)
   amqp:
     exchange: ${AMQP_EXCHANGE:skillforge}
-    queue: ${AMQP_QUEUE:skillforge.problems}
     heartbeat-interval-ms: ${HEARTBEAT_INTERVAL_MS:60000}
 
 logging:

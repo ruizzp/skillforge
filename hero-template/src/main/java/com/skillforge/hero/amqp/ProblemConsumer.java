@@ -21,8 +21,6 @@ public class ProblemConsumer {
     private final SolveService solver;
     private final RabbitTemplate rabbit;
     private final String exchange;
-    private static final String SOLUTIONS_KEY = "solution";
-
     public ProblemConsumer(GuildService guildService, SolveService solver,
                            RabbitTemplate rabbit,
                            @Value("${guild.amqp.exchange}") String exchange) {
@@ -32,7 +30,7 @@ public class ProblemConsumer {
         this.exchange     = exchange;
     }
 
-    @RabbitListener(queues = "${guild.amqp.queue}")
+    @RabbitListener(queues = AmqpConfig.QUEUE)
     public void onProblem(ProblemMessage msg) {
         List<String> mySkills = guildService.getManifest().skills();
         boolean canSolve = msg.requiredSkills().isEmpty() ||
@@ -52,8 +50,9 @@ public class ProblemConsumer {
                 msg.questId(), manifest.heroId(), manifest.heroName(),
                 result.solution(), result.confidence(), result.model(), Instant.now());
 
-        rabbit.convertAndSend(exchange, SOLUTIONS_KEY, solution);
-        log.info("Solução postada — quest: {} | confiança: {}% | modelo: {}",
-                msg.questId(), (int) (result.confidence() * 100), result.model());
+        String primarySkill = msg.requiredSkills().isEmpty() ? "general" : msg.requiredSkills().get(0);
+        rabbit.convertAndSend(exchange, "solution." + primarySkill, solution);
+        log.info("Solução postada — quest: {} | skill: {} | confiança: {}% | modelo: {}",
+                msg.questId(), primarySkill, (int) (result.confidence() * 100), result.model());
     }
 }
