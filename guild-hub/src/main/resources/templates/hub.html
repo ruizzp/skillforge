@@ -136,6 +136,8 @@
         .solution-author { color: var(--accent2); }
         .solution-body { color: var(--text2); white-space: pre-wrap; max-height: 200px; overflow-y: auto; line-height: 1.5; }
         .solutions-loading { font-size: 11px; color: var(--text3); padding: 8px 0; }
+        .solution-meta { justify-content: flex-start; flex-wrap: wrap; }
+        .approve-inline { margin-left: auto; font-size: 10px; padding: 2px 10px; }
 
         /* Hero activity in drawer */
         .activity-section { width: 100%; padding: 10px 0 4px 40px; border-top: 1px solid var(--border); margin-top: 4px; }
@@ -523,6 +525,11 @@
                     panel.innerHTML = '<div class="solutions-loading">nenhum comentário encontrado na issue.</div>';
                     return;
                 }
+                // extrai heroId e solver do pending-row pai
+                const pendingRow = panel.previousElementSibling;
+                const solver  = pendingRow?.dataset.heroId  || '';
+                const questId = pendingRow?.dataset.questId || '';
+
                 comments.forEach((c, i) => {
                     const div = document.createElement('div');
                     div.className = 'solution-comment';
@@ -534,6 +541,8 @@
                             <span class="solution-author">@${c.author}</span>
                             <span>${date}</span>
                             <span style="color:var(--accent2)">resposta ${i + 1}</span>
+                            <button class="approve-btn approve-inline"
+                                onclick="approveFromComment('${questId}','${solver}',this)">✓ aprovar esta</button>
                         </div>
                         <div class="solution-body">${escapeHtml(c.body)}</div>`;
                     panel.appendChild(div);
@@ -546,6 +555,16 @@
 
     function escapeHtml(str) {
         return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    async function approveFromComment(questId, heroId, btn) {
+        // desabilita todos os botões de aprovação desta quest antes de chamar
+        const panel = btn.closest('.solutions-panel');
+        panel?.querySelectorAll('.approve-inline').forEach(b => { b.disabled = true; });
+        const outerBtn = panel?.previousElementSibling?.querySelector('.approve-btn:not(.approve-inline)');
+        if (outerBtn) outerBtn.disabled = true;
+        btn.textContent = 'aprovando...';
+        await approveQuest(questId, heroId, btn);
     }
 
     async function approveQuest(questId, heroId, btn) {
