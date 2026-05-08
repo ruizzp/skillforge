@@ -4,6 +4,7 @@ import com.skillforge.hub.amqp.ProblemMessage;
 import com.skillforge.hub.amqp.ProblemPublisher;
 import com.skillforge.hub.domain.GuildMember;
 import com.skillforge.hub.domain.Quest;
+import com.skillforge.hub.github.GitHubClient;
 import com.skillforge.hub.web.HubDashboardController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,17 +23,20 @@ public class QuestRoutingService {
     private final QuestBoardService questBoard;
     private final ProblemPublisher publisher;
     private final HubDashboardController dashboard;
+    private final GitHubClient github;
 
     public QuestRoutingService(HeroRegistryService registry,
                                 HeroPresenceService presence,
                                 QuestBoardService questBoard,
                                 ProblemPublisher publisher,
-                                HubDashboardController dashboard) {
+                                HubDashboardController dashboard,
+                                GitHubClient github) {
         this.registry   = registry;
         this.presence   = presence;
         this.questBoard = questBoard;
         this.publisher  = publisher;
         this.dashboard  = dashboard;
+        this.github     = github;
     }
 
     public record HeroMatch(
@@ -92,6 +96,8 @@ public class QuestRoutingService {
         ), routingKey);
 
         log.info("Quest {} despachada para {} via {}", questId, route.elected().heroId(), routingKey);
+        try { github.setQuestStatus(quest.number(), "in-progress"); }
+        catch (Exception e) { log.warn("Não foi possível atualizar status da quest {}: {}", questId, e.getMessage()); }
 
         dashboard.broadcast("QUEST_ROUTED",
             ("{\"questId\":\"%s\",\"questTitle\":\"%s\",\"heroId\":\"%s\"," +

@@ -255,6 +255,22 @@ public class GitHubClient {
         updateXp(issueNumber, amount);
     }
 
+    private static final List<String> QUEST_STATUS_LABELS =
+        List.of("in-progress", "pending-review", "completed");
+
+    public void setQuestStatus(int issueNumber, String status) throws Exception {
+        requireToken("setQuestStatus");
+        for (String old : QUEST_STATUS_LABELS) {
+            if (!old.equals(status)) {
+                try {
+                    delete("%s/repos/%s/%s/issues/%d/labels/%s"
+                        .formatted(API, owner, repo, issueNumber, old));
+                } catch (Exception ignored) {}
+            }
+        }
+        addLabel(issueNumber, status);
+    }
+
     private void updateXp(int issueNumber, int delta) throws Exception {
         requireToken("updateXp");
         JsonNode issue = get("%s/repos/%s/%s/issues/%d".formatted(API, owner, repo, issueNumber));

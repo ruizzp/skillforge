@@ -52,6 +52,16 @@ public class SolutionConsumer {
 
         log.debug("Solução completa de {}:\n{}", msg.heroId(), msg.solution());
 
+        if (!msg.questId().startsWith("probe:")) {
+            questBoard.getQuests().stream()
+                .filter(q -> q.id().equals(msg.questId()))
+                .findFirst()
+                .ifPresent(quest -> {
+                    try { github.setQuestStatus(quest.number(), "pending-review"); }
+                    catch (Exception e) { log.warn("Não foi possível marcar pending-review na quest {}: {}", msg.questId(), e.getMessage()); }
+                });
+        }
+
         if (msg.confidence() >= confidenceThreshold) {
             autoValidateSkills(msg);
         }
