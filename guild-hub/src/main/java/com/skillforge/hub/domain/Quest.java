@@ -12,7 +12,8 @@ public record Quest(
         int xpReward,
         String assignee,
         String url,
-        int number
+        int number,
+        String solvedBy   // heroId extraído do label "solved-by:{heroId}" — null se ainda não resolvida
 ) {
     public boolean isAvailable() { return "open".equals(status); }
     public boolean isCompleted() { return "closed".equals(status); }
