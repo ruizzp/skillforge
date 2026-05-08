@@ -224,6 +224,29 @@ public class GitHubClient {
         return mapper.readTree(response).path("number").asInt();
     }
 
+    // ── Quest comments ──────────────────────────────────────────────────────
+
+    public record CommentEntry(String author, String body, String createdAt) {}
+
+    public List<CommentEntry> fetchIssueComments(int issueNumber) {
+        try {
+            String url = "%s/repos/%s/%s/issues/%d/comments?per_page=100"
+                .formatted(API, owner, repo, issueNumber);
+            JsonNode comments = get(url);
+            List<CommentEntry> result = new ArrayList<>();
+            for (JsonNode c : comments) {
+                result.add(new CommentEntry(
+                    c.path("user").path("login").asText(""),
+                    c.path("body").asText(""),
+                    c.path("created_at").asText("")
+                ));
+            }
+            return result;
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     // ── Hero portfolio ──────────────────────────────────────────────────────
 
     public record ActivityEntry(

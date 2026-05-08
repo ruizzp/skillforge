@@ -126,6 +126,16 @@
         .approve-btn.err { border-color: var(--red); color: var(--red); }
         .pending-quest-header { font-size: 12px; font-weight: 500; padding: 10px 0 4px; color: var(--text2); border-bottom: 1px solid var(--border); }
         .pending-multi { font-size: 10px; background: var(--bg3); border: 1px solid var(--yellow); color: var(--yellow); border-radius: 4px; padding: 1px 6px; margin-left: 8px; vertical-align: middle; }
+        .solutions-toggle { font-size: 10px; padding: 3px 10px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text3); cursor: pointer; font-family: var(--mono); transition: border-color 0.15s, color 0.15s; white-space: nowrap; flex-shrink: 0; }
+        .solutions-toggle:hover { border-color: var(--accent); color: var(--accent2); }
+        .solutions-panel { display: none; padding: 12px 0 4px; border-bottom: 1px solid var(--border); }
+        .solutions-panel.open { display: block; }
+        .solution-comment { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; font-size: 12px; }
+        .solution-comment:last-child { margin-bottom: 0; }
+        .solution-meta { font-size: 10px; color: var(--text3); margin-bottom: 8px; display: flex; gap: 12px; }
+        .solution-author { color: var(--accent2); }
+        .solution-body { color: var(--text2); white-space: pre-wrap; max-height: 200px; overflow-y: auto; line-height: 1.5; }
+        .solutions-loading { font-size: 11px; color: var(--text3); padding: 8px 0; }
 
         /* Hero activity in drawer */
         .activity-section { width: 100%; padding: 10px 0 4px 40px; border-top: 1px solid var(--border); margin-top: 4px; }
@@ -476,11 +486,66 @@
                             · <span style="color:var(--yellow)">+${q.xpReward} XP</span>
                         </div>
                     </div>
-                    <button class="approve-btn"
-                        onclick="approveQuest('${q.id}', '${solver}', this)">✓ aprovar</button>`;
+                    <div style="display:flex;gap:6px;flex-shrink:0;">
+                        <button class="solutions-toggle"
+                            onclick="toggleSolutions('${q.id}', this)">▾ respostas</button>
+                        <button class="approve-btn"
+                            onclick="approveQuest('${q.id}', '${solver}', this)">✓ aprovar</button>
+                    </div>`;
                 list.appendChild(row);
+
+                // painel de soluções (oculto por padrão, carregado sob demanda)
+                const panel = document.createElement('div');
+                panel.className = 'solutions-panel';
+                panel.dataset.questId = q.id;
+                panel.innerHTML = '<div class="solutions-loading">carregando respostas...</div>';
+                list.appendChild(panel);
             });
         });
+    }
+
+    async function toggleSolutions(questId, btn) {
+        const panel = btn.closest('.pending-row').nextElementSibling;
+        if (!panel || !panel.classList.contains('solutions-panel')) return;
+
+        const opening = !panel.classList.contains('open');
+        panel.classList.toggle('open');
+        btn.textContent = opening ? '▴ respostas' : '▾ respostas';
+
+        if (opening && !panel.dataset.loaded) {
+            panel.dataset.loaded = 'true';
+            try {
+                const res = await fetch(`/api/quests/${encodeURIComponent(questId)}/comments`);
+                panel.innerHTML = '';
+                if (!res.ok) { panel.innerHTML = '<div class="solutions-loading">erro ao carregar.</div>'; return; }
+                const comments = await res.json();
+                if (!comments || comments.length === 0) {
+                    panel.innerHTML = '<div class="solutions-loading">nenhum comentário encontrado na issue.</div>';
+                    return;
+                }
+                comments.forEach((c, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'solution-comment';
+                    const date = c.createdAt
+                        ? new Date(c.createdAt).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+                        : '';
+                    div.innerHTML = `
+                        <div class="solution-meta">
+                            <span class="solution-author">@${c.author}</span>
+                            <span>${date}</span>
+                            <span style="color:var(--accent2)">resposta ${i + 1}</span>
+                        </div>
+                        <div class="solution-body">${escapeHtml(c.body)}</div>`;
+                    panel.appendChild(div);
+                });
+            } catch (e) {
+                panel.innerHTML = '<div class="solutions-loading">falha ao carregar.</div>';
+            }
+        }
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
     async function approveQuest(questId, heroId, btn) {

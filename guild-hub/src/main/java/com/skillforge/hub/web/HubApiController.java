@@ -72,6 +72,15 @@ public class HubApiController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/quests/{questId}/comments")
+    public ResponseEntity<?> questComments(@PathVariable("questId") String questId) {
+        return questBoard.getQuests().stream()
+            .filter(q -> q.id().equals(questId))
+            .<ResponseEntity<?>>map(q -> ResponseEntity.ok(github.fetchIssueComments(q.number())))
+            .findFirst()
+            .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/heroes/{heroId}/quests")
     public ResponseEntity<?> heroQuests(@PathVariable("heroId") String heroId) {
         if (registry.getHeroById(heroId).isEmpty()) return ResponseEntity.notFound().build();
