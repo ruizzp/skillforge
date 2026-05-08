@@ -124,6 +124,10 @@
         .approve-btn:disabled { opacity: 0.5; cursor: default; }
         .approve-btn.approved { background: var(--green); color: #000; border-color: var(--green); }
         .approve-btn.err { border-color: var(--red); color: var(--red); }
+        .btn-secondary { font-size: 10px; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--text2); background: transparent; color: var(--text2); cursor: pointer; font-family: var(--mono); transition: background 0.15s, color 0.15s; white-space: nowrap; flex-shrink: 0; }
+        .btn-secondary:hover:not(:disabled) { border-color: var(--accent2); color: var(--accent2); }
+        .btn-secondary:disabled { opacity: 0.5; cursor: default; }
+        .btn-secondary.sent { border-color: var(--yellow); color: var(--yellow); }
         .pending-quest-header { font-size: 12px; font-weight: 500; padding: 10px 0 4px; color: var(--text2); border-bottom: 1px solid var(--border); }
         .pending-multi { font-size: 10px; background: var(--bg3); border: 1px solid var(--yellow); color: var(--yellow); border-radius: 4px; padding: 1px 6px; margin-left: 8px; vertical-align: middle; }
         .solutions-toggle { font-size: 10px; padding: 3px 10px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text3); cursor: pointer; font-family: var(--mono); transition: border-color 0.15s, color 0.15s; white-space: nowrap; flex-shrink: 0; }
@@ -525,14 +529,14 @@
                     panel.innerHTML = '<div class="solutions-loading">nenhum comentário encontrado na issue.</div>';
                     return;
                 }
-                // extrai heroId e solver do pending-row pai
+                // questId já vem como parâmetro da função
                 const pendingRow = panel.previousElementSibling;
                 const solver  = pendingRow?.dataset.heroId  || '';
-                const questId = pendingRow?.dataset.questId || '';
 
                 comments.forEach((c, i) => {
                     const div = document.createElement('div');
                     div.className = 'solution-comment';
+                    div.dataset.rawBody = c.body;
                     const date = c.createdAt
                         ? new Date(c.createdAt).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
                         : '';
@@ -541,6 +545,8 @@
                             <span class="solution-author">@${c.author}</span>
                             <span>${date}</span>
                             <span style="color:var(--accent2)">resposta ${i + 1}</span>
+                            <button class="btn-secondary rereview-btn"
+                                onclick="requestRereviewFromComment('${questId}','${solver}',this)">↺ revisar esta</button>
                             <button class="approve-btn approve-inline"
                                 onclick="approveFromComment('${questId}','${solver}',this)">✓ aprovar esta</button>
                         </div>
@@ -565,6 +571,30 @@
         if (outerBtn) outerBtn.disabled = true;
         btn.textContent = 'aprovando...';
         await approveQuest(questId, heroId, btn);
+    }
+
+    async function requestRereviewFromComment(questId, heroId, btn) {
+        const solution = btn.closest('.solution-comment')?.dataset.rawBody || '';
+        if (!solution) { btn.textContent = '↺ sem conteúdo'; return; }
+        btn.disabled = true;
+        btn.textContent = '↺ enviando...';
+        try {
+            const res = await fetch(`/api/routing/${encodeURIComponent(questId)}/rereview`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ heroId, solution })
+            });
+            if (res.ok) {
+                btn.textContent = '↺ enviado';
+                btn.classList.add('sent');
+            } else {
+                btn.textContent = '↺ erro';
+                btn.disabled = false;
+            }
+        } catch (e) {
+            btn.textContent = '↺ erro';
+            btn.disabled = false;
+        }
     }
 
     async function approveQuest(questId, heroId, btn) {

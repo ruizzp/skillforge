@@ -76,6 +76,9 @@ public class ReviewResultConsumer {
                     quest.id(), e.getMessage());
         }
 
+        // Refresh cache after labels are set so the dashboard reads the updated state
+        questBoard.refresh();
+
         dashboard.broadcast("SOLUTION_REVIEWED",
                 "{\"questId\":\"%s\",\"heroId\":\"%s\",\"approved\":true,\"score\":%.2f}"
                         .formatted(result.questId(), result.heroId(), result.reviewScore()));
@@ -135,6 +138,8 @@ public class ReviewResultConsumer {
         } catch (Exception e) {
             log.error("Falha ao escalar quest {} para revisão humana: {}", quest.id(), e.getMessage());
         }
+
+        questBoard.refresh();
 
         dashboard.broadcast("SOLUTION_REVIEWED",
                 "{\"questId\":\"%s\",\"heroId\":\"%s\",\"approved\":false,\"revisionLimit\":true}"
