@@ -109,6 +109,32 @@
         .event-item { padding: 6px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; }
         .event-time { color: var(--text3); flex-shrink: 0; }
         .event-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 6px; }
+
+        /* Pending review */
+        .pending-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+        .pending-row:last-child { border-bottom: none; }
+        .pending-info { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+        .pending-title { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pending-title a { color: var(--text); text-decoration: none; }
+        .pending-title a:hover { color: var(--accent2); }
+        .pending-meta { font-size: 11px; color: var(--text2); }
+        .pending-hero { color: var(--green); }
+        .approve-btn { font-size: 10px; padding: 4px 14px; border-radius: 4px; border: 1px solid var(--green); background: transparent; color: var(--green); cursor: pointer; font-family: var(--mono); transition: background 0.15s, color 0.15s; white-space: nowrap; flex-shrink: 0; }
+        .approve-btn:hover:not(:disabled) { background: var(--green); color: #000; }
+        .approve-btn:disabled { opacity: 0.5; cursor: default; }
+        .approve-btn.approved { background: var(--green); color: #000; border-color: var(--green); }
+        .approve-btn.err { border-color: var(--red); color: var(--red); }
+
+        /* Hero activity in drawer */
+        .activity-section { width: 100%; padding: 10px 0 4px 40px; border-top: 1px solid var(--border); margin-top: 4px; }
+        .activity-header { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+        .activity-loading, .activity-empty { font-size: 11px; color: var(--text3); }
+        .activity-entry { display: grid; grid-template-columns: 80px 1fr 60px 40px; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+        .activity-entry:last-child { border-bottom: none; }
+        .activity-qid { color: var(--accent2); font-size: 10px; }
+        .activity-qtitle { color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .activity-xp { color: var(--yellow); text-align: right; }
+        .activity-conf { color: var(--text3); font-size: 10px; text-align: right; }
     </style>
 </head>
 <body>
@@ -144,14 +170,23 @@
         </div>
         <div class="card">
             <div class="card-title">Quests Abertas</div>
-            <div class="stat-num" th:text="${openQuests}">0</div>
+            <div class="stat-num" id="stat-openQuests" th:text="${openQuests}">0</div>
             <div class="stat-label">disponíveis agora</div>
         </div>
         <div class="card">
             <div class="card-title">Quests Completadas</div>
-            <div class="stat-num" th:text="${completedQuests}">0</div>
+            <div class="stat-num" id="stat-completedQuests" th:text="${completedQuests}">0</div>
             <div class="stat-label">pela guilda</div>
         </div>
+    </div>
+
+    <!-- Pending Review — visível somente quando há soluções aguardando aprovação -->
+    <div class="card section-gap" id="pending-review-section" style="display:none;">
+        <div class="card-title">
+            Aguardando Aprovação
+            <span style="float:right; font-size:10px; color:var(--text3);">soluções recebidas · pendentes de revisão humana</span>
+        </div>
+        <div id="pending-review-list"></div>
     </div>
 
     <div class="grid-2 section-gap">
@@ -199,6 +234,10 @@
                             onclick="validateSkill(event, this)">validar</button>
                 </div>
                 </th:block>
+                <div class="activity-section" th:id="'activity-' + ${entry.member.heroId}">
+                    <div class="activity-header">Histórico de Quests</div>
+                    <div class="activity-loading">carregando...</div>
+                </div>
             </div>
             </th:block>
         </div>
@@ -347,10 +386,14 @@
                    </div>`
                 : `<span class="route-hero-none">— sem hero online</span>`;
 
+            const titleHtml = r.questUrl
+                ? `<a href="${r.questUrl}" target="_blank" rel="noopener" style="color:${color}">${r.questTitle}</a>`
+                : `<span style="color:${color}">${r.questTitle}</span>`;
+
             const btnDisabled = !r.elected ? 'disabled' : '';
             row.innerHTML = `
                 <div class="route-quest">
-                    <span style="color:${color}">${r.questTitle}</span>
+                    ${titleHtml}
                     <small>${xpLabel}${r.requiredSkills.join(', ')}</small>
                 </div>
                 <span class="route-key">${r.routingKey}</span>
@@ -383,6 +426,99 @@
     }
 
     loadRoutingTable();
+    loadPendingReview();
+
+    // ── Pending Review ────────────────────────────────────────────────────────
+    async function loadPendingReview() {
+        try {
+            const res = await fetch('/api/quests?status=pending-review');
+            if (!res.ok) return;
+            renderPendingReview(await res.json());
+        } catch (e) {}
+    }
+
+    function renderPendingReview(quests) {
+        const section = document.getElementById('pending-review-section');
+        const list    = document.getElementById('pending-review-list');
+        list.innerHTML = '';
+        if (!quests || quests.length === 0) { section.style.display = 'none'; return; }
+        section.style.display = 'block';
+        quests.forEach(q => {
+            const row = document.createElement('div');
+            row.className = 'pending-row';
+            row.dataset.questId = q.id;
+            const titleHtml = q.url
+                ? `<a href="${q.url}" target="_blank" rel="noopener">${q.title}</a>`
+                : q.title;
+            const skills = (q.requiredSkills || []).join(', ');
+            row.innerHTML = `
+                <div class="pending-info">
+                    <div class="pending-title">${titleHtml}</div>
+                    <div class="pending-meta">
+                        Hero: <span class="pending-hero">${q.solvedBy}</span>
+                        · ${skills}
+                        · <span style="color:var(--yellow)">+${q.xpReward} XP</span>
+                    </div>
+                </div>
+                <button class="approve-btn" onclick="approveQuest('${q.id}', this)">✓ aprovar</button>`;
+            list.appendChild(row);
+        });
+    }
+
+    async function approveQuest(questId, btn) {
+        btn.disabled = true;
+        btn.textContent = 'aprovando...';
+        try {
+            const res = await fetch(`/api/routing/${encodeURIComponent(questId)}/approve`, { method: 'POST' });
+            const d   = await res.json();
+            if (d.approved) {
+                btn.textContent = '✓ aprovado';
+                btn.classList.add('approved');
+                addEvent('APROVADO', `${questId} → ${d.heroId} · skills validadas + XP creditado`);
+                const row = btn.closest('.pending-row');
+                setTimeout(() => { row.style.opacity = '0'; row.style.transition = 'opacity 0.4s'; setTimeout(() => row.remove(), 400); }, 1200);
+            } else {
+                btn.textContent = d.reason || 'erro';
+                btn.classList.add('err');
+                btn.disabled = false;
+            }
+        } catch (e) {
+            btn.textContent = 'falhou';
+            btn.disabled = false;
+        }
+    }
+
+    // ── Hero Activity ─────────────────────────────────────────────────────────
+    async function loadHeroActivity(heroId) {
+        const container = document.getElementById('activity-' + heroId);
+        if (!container || container.dataset.loaded) return;
+        container.dataset.loaded = 'true';
+        try {
+            const res = await fetch(`/api/heroes/${encodeURIComponent(heroId)}/activity`);
+            if (!res.ok) { container.querySelector('.activity-loading').textContent = ''; return; }
+            const entries = await res.json();
+            if (!entries || entries.length === 0) {
+                container.querySelector('.activity-loading').textContent = 'nenhuma quest completada ainda.';
+                container.querySelector('.activity-loading').className = 'activity-empty';
+                return;
+            }
+            container.querySelector('.activity-loading').remove();
+            entries.forEach(e => {
+                const div = document.createElement('div');
+                div.className = 'activity-entry';
+                const date = e.completedAt ? new Date(e.completedAt).toLocaleDateString('pt-BR') : '';
+                div.innerHTML = `
+                    <span class="activity-qid" title="${date}">${e.questId}</span>
+                    <span class="activity-qtitle" title="${e.questTitle}">${e.questTitle}</span>
+                    <span class="activity-xp">+${e.xp} XP</span>
+                    <span class="activity-conf">${e.confidencePct}%</span>`;
+                container.appendChild(div);
+            });
+        } catch (err) {
+            if (container.querySelector('.activity-loading'))
+                container.querySelector('.activity-loading').textContent = '';
+        }
+    }
 
     // ── SSE ──────────────────────────────────────────────────────────────────
     const feed = document.getElementById('event-feed');
@@ -411,7 +547,8 @@
     });
     es.addEventListener('SOLUTION_RECEIVED', e => {
         const d = JSON.parse(e.data);
-        addEvent('SOLUÇÃO', `${d.heroName} resolveu ${d.questId} — confiança ${Math.round(d.confidence * 100)}%`);
+        addEvent('SOLUÇÃO', `${d.heroName} → ${d.questId} — confiança ${Math.round(d.confidence * 100)}% · aguardando aprovação`);
+        setTimeout(loadPendingReview, 1500); // aguarda o label ser escrito no GitHub
     });
     es.addEventListener('HERO_ONLINE', e => {
         const d = JSON.parse(e.data);
@@ -431,6 +568,21 @@
         const btn = document.querySelector(`.dispatch-btn[onclick*="${d.questId}"]`);
         if (btn) { btn.textContent = '✓ enviado'; btn.classList.add('sent'); btn.disabled = true; }
     });
+    es.addEventListener('QUEST_COMPLETED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('COMPLETA', `${d.questId} · ${d.heroId} · +${d.xpReward} XP`);
+        // remove da fila de pending review se ainda estiver visível
+        const row = document.querySelector(`.pending-row[data-quest-id="${d.questId}"]`);
+        if (row) row.remove();
+        // atualiza contadores no topo
+        const open = document.getElementById('stat-openQuests');
+        const done = document.getElementById('stat-completedQuests');
+        if (open) open.textContent = Math.max(0, (parseInt(open.textContent) || 0) - 1);
+        if (done) done.textContent = (parseInt(done.textContent) || 0) + 1;
+        // invalida cache de activity do herói para recarregar na próxima abertura
+        const act = document.getElementById('activity-' + d.heroId);
+        if (act) delete act.dataset.loaded;
+    });
     es.addEventListener('SKILL_AUTO_VALIDATED', e => {
         const d = JSON.parse(e.data);
         d.skills.forEach(skill => markValidated(d.heroId, skill));
@@ -447,7 +599,11 @@
     });
 
     function toggleDrawer(heroId) {
-        document.getElementById('drawer-' + heroId)?.classList.toggle('open');
+        const drawer = document.getElementById('drawer-' + heroId);
+        if (!drawer) return;
+        const opening = !drawer.classList.contains('open');
+        drawer.classList.toggle('open');
+        if (opening) loadHeroActivity(heroId);
     }
 
     async function validateSkill(event, btn) {

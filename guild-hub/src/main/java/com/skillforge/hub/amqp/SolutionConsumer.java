@@ -112,18 +112,27 @@ public class SolutionConsumer {
             }
         }
 
-        // XP da quest (apenas quests reais — probes já creditam via validateSkill)
+        // XP + portfolio entry (apenas quests reais)
         if (!msg.questId().startsWith("probe:") && !validated.isEmpty()) {
             questBoard.getQuests().stream()
-                    .filter(q -> q.id().equals(msg.questId()) && q.xpReward() > 0)
+                    .filter(q -> q.id().equals(msg.questId()))
                     .findFirst()
                     .ifPresent(quest -> {
+                        if (quest.xpReward() > 0) {
+                            try {
+                                github.addXp(hero.issueNumber(), quest.xpReward());
+                                log.info("Quest XP creditado: +{} para {} (quest {}).",
+                                        quest.xpReward(), msg.heroId(), msg.questId());
+                            } catch (Exception e) {
+                                log.error("Falha ao creditar quest XP para {}: {}", msg.heroId(), e.getMessage());
+                            }
+                        }
                         try {
-                            github.addXp(hero.issueNumber(), quest.xpReward());
-                            log.info("Quest XP creditado: +{} para {} (quest {}).",
-                                    quest.xpReward(), msg.heroId(), msg.questId());
+                            github.postQuestCompletionComment(
+                                hero.issueNumber(), quest.id(), quest.title(),
+                                validated, quest.xpReward(), (int)(msg.confidence() * 100));
                         } catch (Exception e) {
-                            log.error("Falha ao creditar quest XP para {}: {}", msg.heroId(), e.getMessage());
+                            log.warn("Portfolio comment falhou para {}: {}", msg.heroId(), e.getMessage());
                         }
                     });
         }

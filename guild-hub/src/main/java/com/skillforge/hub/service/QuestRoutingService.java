@@ -54,12 +54,13 @@ public class QuestRoutingService {
     public record QuestRoute(
         String questId,
         String questTitle,
+        String questUrl,
         String rarity,
         int xpReward,
         List<String> requiredSkills,
         String routingKey,
-        List<HeroMatch> candidates,   // todos com skill compatível
-        HeroMatch elected             // melhor candidato online (null se nenhum online)
+        List<HeroMatch> candidates,
+        HeroMatch elected
     ) {}
 
     public record ApprovalResult(boolean approved, String questId, String heroId, String reason) {}
@@ -99,8 +100,8 @@ public class QuestRoutingService {
             log.info("Quest {} aprovada — hero: {} | issue #{} fechada", questId, heroId, quest.number());
 
             dashboard.broadcast("QUEST_COMPLETED",
-                "{\"questId\":\"%s\",\"heroId\":\"%s\",\"heroName\":\"%s\",\"xpReward\":%d}"
-                    .formatted(questId, heroId, heroName, quest.xpReward()));
+                "{\"questId\":\"%s\",\"heroId\":\"%s\",\"heroName\":\"%s\",\"xpReward\":%d,\"questTitle\":\"%s\"}"
+                    .formatted(questId, heroId, heroName, quest.xpReward(), quest.title()));
 
             return new ApprovalResult(true, questId, heroId, "aprovado");
         } catch (Exception e) {
@@ -192,7 +193,7 @@ public class QuestRoutingService {
         String routingKey = "problem." + primarySkill;
 
         return new QuestRoute(
-            quest.id(), quest.title(), quest.rarity().name(),
+            quest.id(), quest.title(), quest.url(), quest.rarity().name(),
             quest.xpReward(), quest.requiredSkills(),
             routingKey, candidates, elected
         );

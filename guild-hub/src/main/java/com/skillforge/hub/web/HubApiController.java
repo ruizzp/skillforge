@@ -65,6 +65,13 @@ public class HubApiController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/heroes/{heroId}/activity")
+    public ResponseEntity<?> heroActivity(@PathVariable("heroId") String heroId) {
+        return registry.getHeroById(heroId)
+                .<ResponseEntity<?>>map(hero -> ResponseEntity.ok(github.fetchHeroActivity(hero.issueNumber())))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/leaderboard")
     public ResponseEntity<List<LeaderboardEntry>> leaderboard() {
         return ResponseEntity.ok(registry.getLeaderboard());
@@ -80,9 +87,11 @@ public class HubApiController {
                 : questBoard.getQuests();
 
         result = switch (status) {
-            case "open"      -> result.stream().filter(Quest::isAvailable).toList();
-            case "completed" -> result.stream().filter(Quest::isCompleted).toList();
-            default          -> result;
+            case "open"           -> result.stream().filter(Quest::isAvailable).toList();
+            case "completed"      -> result.stream().filter(Quest::isCompleted).toList();
+            case "pending-review" -> result.stream()
+                .filter(q -> q.isAvailable() && q.solvedBy() != null).toList();
+            default               -> result;
         };
 
         return ResponseEntity.ok(result);

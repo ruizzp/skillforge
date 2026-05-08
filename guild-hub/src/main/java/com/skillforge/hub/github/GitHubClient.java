@@ -13,7 +13,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class GitHubClient {
@@ -220,6 +222,77 @@ public class GitHubClient {
         ));
         String response = post(url, payload);
         return mapper.readTree(response).path("number").asInt();
+    }
+
+    // ── Hero portfolio ──────────────────────────────────────────────────────
+
+    public record ActivityEntry(
+        String questId,
+        String questTitle,
+        List<String> skills,
+        int xp,
+        int confidencePct,
+        String completedAt
+    ) {}
+
+    public void postQuestCompletionComment(int heroIssueNumber, String questId, String questTitle,
+            List<String> skills, int xp, int confidencePct) throws Exception {
+        requireToken("postQuestCompletionComment");
+        String meta = mapper.writeValueAsString(Map.of(
+            "questId", questId, "questTitle", questTitle,
+            "skills", skills, "xp", xp,
+            "confidence", confidencePct,
+            "completedAt", Instant.now().toString()
+        ));
+        String skillsFormatted = skills.stream()
+            .map(s -> "`" + s + "`")
+            .collect(Collectors.joining(", "));
+        String body = """
+            <!-- quest-completion: %s -->
+            ## ⚔️ Quest Completada — %s
+
+            | | |
+            |---|---|
+            | **Quest** | %s |
+            | **Skills validadas** | %s |
+            | **XP creditado** | +%d XP |
+            | **Confiança** | %d%% |
+            """.formatted(meta, questId, questTitle, skillsFormatted, xp, confidencePct);
+        postComment(heroIssueNumber, body);
+    }
+
+    public List<ActivityEntry> fetchHeroActivity(int issueNumber) {
+        try {
+            String url = "%s/repos/%s/%s/issues/%d/comments?per_page=50"
+                .formatted(API, owner, repo, issueNumber);
+            JsonNode comments = get(url);
+            List<ActivityEntry> result = new ArrayList<>();
+            for (JsonNode comment : comments) {
+                String body = comment.path("body").asText("");
+                int marker = body.indexOf("<!-- quest-completion:");
+                if (marker < 0) continue;
+                int dataStart = marker + "<!-- quest-completion:".length();
+                int dataEnd   = body.indexOf("-->", dataStart);
+                if (dataEnd < 0) continue;
+                try {
+                    JsonNode data = mapper.readTree(body.substring(dataStart, dataEnd).trim());
+                    List<String> skills = new ArrayList<>();
+                    data.path("skills").forEach(s -> skills.add(s.asText()));
+                    result.add(new ActivityEntry(
+                        data.path("questId").asText(),
+                        data.path("questTitle").asText(),
+                        skills,
+                        data.path("xp").asInt(),
+                        data.path("confidence").asInt(),
+                        data.path("completedAt").asText()
+                    ));
+                } catch (Exception ignored) {}
+            }
+            Collections.reverse(result); // mais recente primeiro
+            return result;
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     // ── Comments & labels ───────────────────────────────────────────────────
