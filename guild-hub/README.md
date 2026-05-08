@@ -98,7 +98,7 @@ Heróis que não normalizarem as skills do manifest **não** aparecerão como ca
 
 ---
 
-## Ciclo completo: despacho → artefato → solução
+## Ciclo completo: despacho → solução → revisão → aprovação humana
 
 ```
 Dashboard  →  POST /api/routing/{questId}/dispatch
@@ -106,20 +106,54 @@ Dashboard  →  POST /api/routing/{questId}/dispatch
                      xpReward, submittedBy, questUrl, questBody)
                      routing-key: "problem.{normalizedSkill}"
                           └─ hero recebe via @RabbitListener
-                               ├─ constrói ProjectBrief a partir de questBody
-                               ├─ gera artefatos (Claude API 0.8)
-                               ├─ valida artefatos (Claude API 0.1, persona investidor)
+                               ├─ gera solução (LLM)
                                ├─ posta resultado como comentário na issue GitHub
                                └─ publica SolutionMessage(questId, heroId, confidence)
                                     routing-key: "solution.{skill}"
                                          └─ SolutionConsumer (hub)
                                               ├─ broadcast SSE SOLUTION_RECEIVED
-                                              └─ confidence ≥ threshold?
-                                                   └─ sim → github.validateSkill()
-                                                             broadcast SKILL_AUTO_VALIDATED
+                                              ├─ label: review-pending
+                                              └─ publica ReviewMessage
+                                                   routing-key: "review.{skill}"
+                                                        └─ hero-reviewer recebe
+                                                             ├─ extrai DoD do questBody
+                                                             ├─ avalia solução vs DoD via Ollama
+                                                             └─ publica ReviewResultMessage
+                                                                  routing-key: "review-result.quest"
+                                                                       └─ ReviewResultConsumer (hub)
+                                                                            ├─ score ≥ threshold?
+                                                                            │    ├─ sim → label pending-review
+                                                                            │    │         label solved-by:{heroId}
+                                                                            │    │         broadcast SOLUTION_REVIEWED
+                                                                            │    └─ não (< maxRevisions)?
+                                                                            │         ├─ sim → comenta feedback na quest
+                                                                            │         │         re-publica ProblemMessage
+                                                                            │         │         broadcast REVISION_REQUESTED
+                                                                            │         └─ não → label pending-review + revision-limit
+                                                                            │                   broadcast SOLUTION_REVIEWED
+                                                                            │
+                                                                            └─ (quando aprovação humana via dashboard)
+                                                                                 POST /api/routing/{questId}/approve
+                                                                                      └─ github.validateSkill()
+                                                                                         github.addXp()
+                                                                                         broadcast SKILL_AUTO_VALIDATED
+                                                                                         broadcast QUEST_COMPLETED
 ```
 
-**Persistência dos artefatos:** cada herói é responsável por postar os artefatos como comentário na issue da quest. O hub não armazena o conteúdo — o GitHub Issue é o banco de dados.
+**Revisões automáticas:** um herói pode ser chamado até `MAX_REVISIONS` vezes para refinar a solução antes de escalar para aprovação humana. O feedback de cada rodada é embutido no corpo da quest re-despachada.
+
+**Persistência dos artefatos:** cada herói posta a solução como comentário na issue da quest. O hub não armazena o conteúdo — o GitHub Issue é o banco de dados.
+
+### Labels de ciclo de vida da quest
+
+| Label | Significado |
+|---|---|
+| `review-pending` | Solução recebida, aguardando revisão automatizada |
+| `solved-by:{heroId}` | Herói que submeteu solução aprovada pelo revisor |
+| `revision-count:{n}` | Número da tentativa atual (incrementado a cada revisão) |
+| `revision-limit` | Limite de revisões atingido — escalado para revisão humana |
+| `pending-review` | Pronto para aprovação humana (passou no revisor ou atingiu limite) |
+| `assigned-to:{heroId}` | Herói para quem a quest foi despachada |
 
 ---
 
@@ -155,6 +189,12 @@ Base: `http://localhost:8080/api`
 | `GET` | `/presence` | Status online/offline dos heróis em tempo real |
 | `GET` | `/routing` | Tabela de roteamento: quests × heroes × skills |
 | `POST` | `/routing/{questId}/dispatch` | Despacha quest para o herói eleito |
+| `POST` | `/routing/{questId}/approve` | Aprova solução de herói (valida skills + XP) — `?heroId=` opcional |
+| `POST` | `/routing/{questId}/rereview` | Força nova revisão automatizada — body `{"heroId":"…","solution":"…"}` (solution = texto do comentário específico) |
+| `GET` | `/quests?status=pending-review` | Lista quests aguardando aprovação humana |
+| `GET` | `/quests/{questId}/comments` | Comentários da issue da quest (soluções submetidas) |
+| `GET` | `/heroes/{heroId}/activity` | Histórico de quests concluídas pelo herói |
+| `GET` | `/heroes/{heroId}/quests` | Quests ativas e em revisão do herói |
 | `POST` | `/refresh` | Força re-sync imediato com GitHub (sem esperar ciclo de 5min) |
 | `GET` | `/health` | Health check |
 | `GET` | `/events` | SSE stream de eventos em tempo real |
@@ -257,8 +297,11 @@ Conecte em `GET /events` para receber eventos conforme ocorrem.
 | `HERO_ONLINE` | Hero envia primeiro heartbeat (ou volta online) | `{heroId, heroName}` |
 | `HERO_OFFLINE` | Hero para de enviar heartbeat por mais de `HEARTBEAT_TIMEOUT_MS` | `{heroId, heroName}` |
 | `QUEST_ROUTED` | Quest despachada para um herói | `{questId, heroId, heroName, routingKey}` |
-| `SOLUTION_RECEIVED` | Hero resolve uma quest via AMQP | `{questId, heroId, heroName, confidence}` |
-| `SKILL_AUTO_VALIDATED` | Skill validada automaticamente após solução confiável | `{heroId, questId, skills[]}` |
+| `SOLUTION_RECEIVED` | Hero submete solução via AMQP | `{questId, heroId, heroName, confidence}` |
+| `SOLUTION_REVIEWED` | Revisor aprova solução (ou atinge limite) | `{questId, heroId, approved, score, revisionLimit?}` |
+| `REVISION_REQUESTED` | Revisor rejeita e solicita revisão | `{questId, heroId, attempt, feedback}` |
+| `SKILL_AUTO_VALIDATED` | Skill validada após aprovação humana | `{heroId, questId, skills[], xp, totalXp}` |
+| `QUEST_COMPLETED` | Quest encerrada após aprovação humana | `{questId, heroId}` |
 | `QUEST_UNLOCKED` | Quest criada (futuro) | `{rarity, title, xpReward}` |
 
 Exemplo com `curl`:
@@ -336,6 +379,7 @@ skillforge:
 | `SKILL_CONFIDENCE_THRESHOLD` | `0.75` | Confiança mínima para auto-validar skills |
 | `HEARTBEAT_TIMEOUT_MS` | `180000` | Tempo sem heartbeat para marcar hero offline |
 | `HEARTBEAT_CHECK_INTERVAL_MS` | `60000` | Frequência de verificação de heroes offline |
+| `MAX_REVISIONS` | `3` | Máximo de revisões automáticas antes de escalar para humano |
 
 ---
 
@@ -359,12 +403,16 @@ guild-hub/
 │   └── RegistrationWatcher.java — processa issues pendentes de registro
 │
 ├── amqp/
-│   ├── AmqpConfig.java          — filas: problems, solutions, heartbeats
-│   ├── HeartbeatConsumer.java   — consome heartbeats e atualiza presença
-│   ├── HeartbeatMessage.java    — mensagem de heartbeat (heroId, heroName, skills, timestamp)
-│   ├── ProblemPublisher.java    — publica problemas para os heróis
-│   ├── SolutionConsumer.java    — recebe soluções, valida skills automaticamente
-│   └── SolutionMessage.java     — mensagem de solução
+│   ├── AmqpConfig.java            — filas: problems, solutions, heartbeats, review-results
+│   ├── HeartbeatConsumer.java     — consome heartbeats e atualiza presença
+│   ├── HeartbeatMessage.java      — mensagem de heartbeat
+│   ├── ProblemMessage.java        — mensagem de problema despachado ao herói
+│   ├── ProblemPublisher.java      — publica problemas para os heróis
+│   ├── ReviewMessage.java         — mensagem enviada ao hero-reviewer
+│   ├── ReviewResultConsumer.java  — processa veredicto: aprova, solicita revisão ou escala
+│   ├── ReviewResultMessage.java   — veredicto do hero-reviewer
+│   ├── SolutionConsumer.java      — recebe soluções, encaminha ao hero-reviewer
+│   └── SolutionMessage.java       — mensagem de solução
 │
 ├── service/
 │   ├── HeroPresenceService.java — rastreia online/offline via heartbeats, broadcast SSE

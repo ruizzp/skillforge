@@ -1,0 +1,11 @@
+{
+  "heroId":       "hero-reviewer",
+  "heroName":     "Hero Reviewer",
+  "heroClass":    "Reviewer",
+  "skills":       ["quest-review", "solution-evaluation", "dod-validation", "feedback-generation"],
+  "specialty":    "Avalia soluções de quests contra o Definition of Done usando SLM local via Ollama; devolve veredicto com score, critérios e feedback acionável",
+  "endpoint":     "http://localhost:8093",
+  "model":        "llama3.2",
+  "domain":       "guild",
+  "amqpRoutingKey": "review.#"
+}
