@@ -24,6 +24,17 @@ public class GuildController {
 
     @GetMapping("/")
     public String dashboard(Model model) {
+        populateModel(model);
+        return "dashboard";
+    }
+
+    @GetMapping("/v2")
+    public String dashboardV2(Model model) {
+        populateModel(model);
+        return "dashboard-v2";
+    }
+
+    private void populateModel(Model model) {
         var manifest = guild.getManifest();
         var level = guild.getHeroLevel();
 
@@ -42,8 +53,6 @@ public class GuildController {
         model.addAttribute("completedQuests", guild.getCompletedQuestCount());
         model.addAttribute("guildDataAvailable", guild.isGuildDataAvailable());
         model.addAttribute("lastFetchMs", guild.getLastFetchMs());
-
-        return "dashboard";
     }
 
     @GetMapping("/quests")

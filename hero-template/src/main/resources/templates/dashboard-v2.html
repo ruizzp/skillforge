@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${hero.heroName} + ' — SkillForge'">SkillForge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            /* surfaces */
+            --bg:        #09090b;
+            --surface:   #111115;
+            --surface-2: #18181c;
+            --surface-3: #1e1e24;
+
+            /* borders */
+            --border:    #27272a;
+            --border-2:  #3f3f46;
+
+            /* text */
+            --text:      #fafafa;
+            --text-2:    #a1a1aa;
+            --text-3:    #52525b;
+
+            /* semantic */
+            --accent:    #6366f1;
+            --accent-fg: #818cf8;
+            --success:   #22c55e;
+            --warning:   #f59e0b;
+            --danger:    #ef4444;
+            --info:      #3b82f6;
+            --purple:    #a855f7;
+
+            /* chart palette */
+            --c1: #6366f1;
+            --c2: #22c55e;
+            --c3: #f59e0b;
+            --c4: #a855f7;
+            --c5: #3b82f6;
+
+            --radius: 10px;
+            --font: 'Inter', system-ui, sans-serif;
+            --mono: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        a { color: var(--accent-fg); text-decoration: none; }
+        a:hover { color: var(--text); }
+
+        /* ── Animations ─────────────────────────────── */
+        @keyframes fadeIn   { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+
+        .fade-in { animation: fadeIn .25s ease both; }
+
+        /* ── Topbar ─────────────────────────────────── */
+        .topbar {
+            position: sticky; top: 0; z-index: 50;
+            background: rgba(9,9,11,.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            height: 56px;
+            display: flex; align-items: center; gap: 32px;
+        }
+        .brand {
+            font-size: 15px; font-weight: 700; letter-spacing: .06em;
+            color: var(--text); white-space: nowrap;
+        }
+        .brand span { color: var(--accent-fg); }
+        .topbar-nav { display: flex; gap: 4px; flex: 1; }
+        .topbar-nav a {
+            padding: 5px 12px; border-radius: 6px;
+            font-size: 13px; font-weight: 500; color: var(--text-2);
+            transition: background .15s, color .15s;
+        }
+        .topbar-nav a:hover { background: var(--surface-2); color: var(--text); }
+        .topbar-nav a.active { background: var(--surface-2); color: var(--text); }
+        .topbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+        .sse-dot {
+            width: 7px; height: 7px; border-radius: 50%; background: var(--text-3);
+            transition: background .3s;
+        }
+        .sse-dot.live    { background: var(--success); animation: pulseDot 1.5s ease infinite; }
+        .sse-dot.error   { background: var(--danger); }
+        .hero-chip {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--surface-2); border: 1px solid var(--border);
+            border-radius: 20px; padding: 4px 12px 4px 6px; font-size: 12px;
+        }
+        .hero-chip-avatar {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: var(--accent); display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0;
+        }
+        .hero-chip-name { font-weight: 500; color: var(--text); }
+        .badge-level {
+            font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 20px;
+            border: 1px solid; letter-spacing: .04em;
+        }
+        .badge-level.apprentice { color: var(--text-2); border-color: var(--border-2); }
+        .badge-level.journeyman { color: var(--info); border-color: var(--info); }
+        .badge-level.expert     { color: var(--purple); border-color: var(--purple); }
+        .badge-level.master     { color: var(--warning); border-color: var(--warning); }
+
+        /* ── Layout ─────────────────────────────────── */
+        .page { max-width: 1180px; margin: 0 auto; padding: 28px 24px 64px; }
+
+        /* ── Cards ──────────────────────────────────── */
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px;
+        }
+        .card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+        }
+        .card-label {
+            font-size: 11px; font-weight: 600; letter-spacing: .08em;
+            text-transform: uppercase; color: var(--text-3);
+        }
+
+        /* ── Alert banner ───────────────────────────── */
+        .alert {
+            border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px;
+            font-size: 13px; border: 1px solid;
+        }
+        .alert-warning { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.3); color: var(--warning); }
+        .alert-accent  { background: rgba(99,102,241,.08); border-color: rgba(99,102,241,.3); color: var(--accent-fg); }
+        .alert code    { background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 4px; font-family: var(--mono); font-size: 12px; }
+        .alert p       { margin-top: 8px; color: var(--text-2); font-size: 12px; line-height: 1.7; }
+        .alert ol      { margin: 12px 0 0 18px; color: var(--text-2); font-size: 12px; line-height: 1.9; }
+
+        /* ── Metrics row ────────────────────────────── */
+        .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        @media (max-width: 800px) { .metrics-row { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 480px) { .metrics-row { grid-template-columns: 1fr; } }
+
+        .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+        .metric-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-bottom: 10px; }
+        .metric-value { font-size: 30px; font-weight: 700; font-family: var(--mono); color: var(--text); line-height: 1; }
+        .metric-sub   { font-size: 11px; color: var(--text-3); margin-top: 5px; }
+        .metric-trend { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+        .trend-up   { background: rgba(34,197,94,.12); color: var(--success); }
+        .trend-down { background: rgba(239,68,68,.12);  color: var(--danger); }
+        .trend-neu  { background: rgba(161,161,170,.1); color: var(--text-3); }
+
+        /* ── Content grid ───────────────────────────── */
+        .content-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; margin-bottom: 20px; }
+        @media (max-width: 800px) { .content-grid { grid-template-columns: 1fr; } }
+
+        /* ── Hero profile ───────────────────────────── */
+        .hero-profile-top  { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+        .hero-avatar-lg {
+            width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: 700; color: #fff;
+        }
+        .hero-name   { font-size: 16px; font-weight: 600; }
+        .hero-class  { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+        .hero-specialty { font-size: 12px; color: var(--text-2); margin-top: 6px; line-height: 1.6; }
+
+        .skills-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+        .skill-pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 500;
+            border: 1px solid;
+        }
+        .skill-pill.validated { background: rgba(34,197,94,.1); border-color: rgba(34,197,94,.35); color: var(--success); }
+        .skill-pill.declared  { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.3); color: var(--warning); }
+        .skill-pill .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+        .xp-section { padding-top: 16px; border-top: 1px solid var(--border); }
+        .xp-row  { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+        .xp-num  { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent-fg); }
+        .xp-next { font-size: 11px; color: var(--text-3); }
+        .xp-bar  { background: var(--surface-3); border-radius: 4px; height: 5px; overflow: hidden; }
+        .xp-fill { background: linear-gradient(90deg, var(--accent), var(--purple)); height: 100%; border-radius: 4px; transition: width .4s; }
+        .skill-legend { margin-top: 12px; display: flex; gap: 14px; }
+        .skill-legend span { font-size: 10px; color: var(--text-3); display: flex; align-items: center; gap: 5px; }
+        .skill-legend .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+        /* ── Members list ───────────────────────────── */
+        .member-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .member-item:last-child { border-bottom: none; }
+        .member-avatar {
+            position: relative; width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+            background: var(--surface-3); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text-3);
+        }
+        .member-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        .status-dot {
+            position: absolute; bottom: 0; right: 0;
+            width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--surface);
+        }
+        .status-dot.online  { background: var(--success); }
+        .status-dot.offline { background: var(--text-3); }
+        .member-info { flex: 1; min-width: 0; }
+        .member-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .member-class-tag { font-size: 11px; color: var(--text-3); }
+        .member-xp { font-family: var(--mono); font-size: 11px; color: var(--accent-fg); white-space: nowrap; }
+        .empty-state { text-align: center; padding: 28px 0; color: var(--text-3); font-size: 13px; line-height: 1.8; }
+
+        /* ── Locked card ────────────────────────────── */
+        .locked-card {
+            background: var(--surface); border: 1px dashed var(--border-2);
+            border-radius: var(--radius); padding: 20px; text-align: center;
+            color: var(--text-3); margin-bottom: 20px;
+        }
+        .lock-icon { font-size: 20px; margin-bottom: 8px; opacity: .5; }
+        .locked-card .locked-title { font-size: 13px; font-weight: 500; color: var(--text-3); }
+        .locked-card .locked-hint  { font-size: 11px; margin-top: 4px; }
+
+        /* ── Architecture card ──────────────────────── */
+        .arch-pre {
+            font-family: var(--mono); font-size: 12px; color: var(--text-2);
+            line-height: 1.9; white-space: pre-wrap; margin-bottom: 12px;
+        }
+
+        /* ── Event feed ─────────────────────────────── */
+        .event-feed { max-height: 240px; overflow-y: auto; }
+        .event-feed::-webkit-scrollbar { width: 4px; }
+        .event-feed::-webkit-scrollbar-track { background: transparent; }
+        .event-feed::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+        .event-item {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 8px 0; border-bottom: 1px solid var(--border);
+            font-size: 12px; animation: fadeIn .2s ease both;
+        }
+        .event-item:last-child { border-bottom: none; }
+        .event-type-badge {
+            flex-shrink: 0; font-size: 10px; font-weight: 600; letter-spacing: .04em;
+            padding: 2px 6px; border-radius: 4px; margin-top: 1px; border: 1px solid;
+        }
+        .type-guild    { background: rgba(99,102,241,.12);  border-color: rgba(99,102,241,.3);  color: var(--accent-fg); }
+        .type-hero     { background: rgba(34,197,94,.1);    border-color: rgba(34,197,94,.3);   color: var(--success); }
+        .type-quest    { background: rgba(245,158,11,.1);   border-color: rgba(245,158,11,.3);  color: var(--warning); }
+        .type-skill    { background: rgba(168,85,247,.1);   border-color: rgba(168,85,247,.3);  color: var(--purple); }
+        .type-solution { background: rgba(59,130,246,.1);   border-color: rgba(59,130,246,.3);  color: var(--info); }
+        .type-review   { background: rgba(239,68,68,.1);    border-color: rgba(239,68,68,.3);   color: var(--danger); }
+        .event-body  { flex: 1; color: var(--text-2); line-height: 1.5; }
+        .event-body strong { color: var(--text); font-weight: 500; }
+        .event-time  { flex-shrink: 0; color: var(--text-3); font-family: var(--mono); font-size: 11px; margin-top: 2px; }
+        .feed-empty  { text-align: center; padding: 24px 0; color: var(--text-3); font-size: 12px; }
+
+        /* ── Footer ─────────────────────────────────── */
+        .page-footer {
+            margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px; color: var(--text-3);
+        }
+        .switch-link { color: var(--text-3); text-decoration: underline; text-decoration-color: var(--border-2); }
+        .switch-link:hover { color: var(--text-2); }
+
+        /* ── Utilities ──────────────────────────────── */
+        .gap-b { margin-bottom: 20px; }
+        code {
+            font-family: var(--mono); font-size: 12px;
+            background: var(--surface-3); border: 1px solid var(--border);
+            padding: 1px 6px; border-radius: 4px; color: var(--success);
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Topbar ──────────────────────────────────────── -->
+<header class="topbar">
+    <div class="brand">SKILL<span>FORGE</span></div>
+    <nav class="topbar-nav">
+        <a href="/v2" class="active">Dashboard</a>
+        <a href="/quests">Quests</a>
+    </nav>
+    <div class="topbar-right">
+        <div class="sse-dot" id="sse-dot" title="SSE"></div>
+        <div class="hero-chip">
+            <div class="hero-avatar-lg" style="width:22px;height:22px;border-radius:50%;font-size:10px;"
+                 th:text="${hero.heroName.substring(0,1)}">H</div>
+            <span class="hero-chip-name" th:text="${hero.heroName}">Hero</span>
+            <span class="badge-level"
+                  th:classappend="${heroLevel.name() == 'APPRENTICE'} ? ' apprentice' :
+                                  (${heroLevel.name() == 'JOURNEYMAN'} ? ' journeyman' :
+                                  (${heroLevel.name() == 'EXPERT'}     ? ' expert'     : ' master'))"
+                  th:text="${heroLevel.name()}">LEVEL</span>
+        </div>
+    </div>
+</header>
+
+<!-- ── Page ────────────────────────────────────────── -->
+<main class="page">
+
+    <!-- Config warning -->
+    <div class="alert alert-warning gap-b"
+         th:if="${hero.heroId == 'hero-unknown' or hero.heroId == 'seu-hero-id' or hero.heroId == 'hero-template'}">
+        <strong>Herói não configurado</strong> — edite <code>manifest.json</code> e <code>application.yml</code> com seu <code>heroId</code>, nome e skills.
+    </div>
+
+    <!-- Onboarding banner -->
+    <details class="alert alert-accent gap-b" th:if="${isApprentice}" open>
+        <summary style="cursor:pointer; font-weight:600; list-style:none;">
+            Bem-vindo à Guild, <span th:text="${hero.heroName}">Herói</span>. — clique para expandir
+        </summary>
+        <p>
+            A <strong>SkillForge Guild</strong> é um sistema distribuído onde cada developer expõe suas habilidades
+            como um nó vivo. Quando você entra, o sistema recalcula o que a guilda consegue resolver.
+        </p>
+        <ol>
+            <li>Edite <code>manifest.json</code> com suas skills reais</li>
+            <li>Atualize <code>skillforge.hero.id</code> em <code>application.yml</code></li>
+            <li>Reinicie o servidor e escolha sua primeira quest em <a href="/quests">Quests</a></li>
+            <li>Abra uma issue com label <code>hero</code> para se registrar na guilda</li>
+        </ol>
+    </details>
+
+    <!-- ── Metrics ──────────────────────────────────── -->
+    <section class="metrics-row fade-in gap-b">
+        <div class="metric-card">
+            <div class="metric-label">Heróis</div>
+            <div class="metric-value" th:text="${memberCount}">0</div>
+            <div class="metric-sub">membros registrados</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Quests Abertas</div>
+            <div class="metric-value" th:text="${openQuests}">0</div>
+            <div class="metric-sub">disponíveis agora</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Completadas</div>
+            <div class="metric-value" th:text="${completedQuests}">0</div>
+            <div class="metric-sub">pela guilda</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Seu XP</div>
+            <div>
+                <span class="metric-value" th:text="${heroXp}">0</span>
+                <span class="metric-trend trend-up" th:if="${heroXp > 0}">Lv <span th:text="${hero.level}">1</span></span>
+                <span class="metric-trend trend-neu" th:unless="${heroXp > 0}">Lv 1</span>
+            </div>
+            <div class="metric-sub">pontos acumulados</div>
+        </div>
+    </section>
+
+    <!-- ── Hero + Members ───────────────────────────── -->
+    <section class="content-grid gap-b">
+
+        <!-- Hero profile card -->
+        <div class="card fade-in">
+            <div class="card-header">
+                <span class="card-label">Seu Herói</span>
+                <span style="font-size:11px; color:var(--text-3);" th:text="'Modelo: ' + ${hero.model}">phi3:mini</span>
+            </div>
+
+            <div class="hero-profile-top">
+                <div class="hero-avatar-lg" th:text="${hero.heroName.substring(0,1)}">H</div>
+                <div>
+                    <div class="hero-name" th:text="${hero.heroName}">Hero</div>
+                    <div class="hero-class" th:text="${hero.heroClass}">Class</div>
+                    <div class="hero-specialty" th:if="${hero.specialty != null and !hero.specialty.isEmpty()}"
+                         th:text="${hero.specialty}">Specialty</div>
+                </div>
+            </div>
+
+            <!-- Skills -->
+            <div class="skills-wrap">
+                <th:block th:each="skill : ${hero.skills}">
+                    <span class="skill-pill"
+                          th:classappend="${validatedSkills.contains(skill)} ? ' validated' : ' declared'">
+                        <span class="dot"></span>
+                        <span th:text="${skill}">skill</span>
+                    </span>
+                </th:block>
+            </div>
+            <div class="skill-legend">
+                <span><span class="dot" style="background:var(--success);"></span> Validada</span>
+                <span><span class="dot" style="background:var(--warning);"></span> Declarada — aguardando prova</span>
+            </div>
+
+            <!-- XP bar -->
+            <div class="xp-section">
+                <div class="xp-row">
+                    <span class="xp-num" th:text="${heroXp} + ' XP'">0 XP</span>
+                    <span class="xp-next"
+                          th:text="'Nível ' + ${hero.level} + ' · próximo: ' + (1000 - (${heroXp} % 1000)) + ' XP'">
+                        Nível 1
+                    </span>
+                </div>
+                <div class="xp-bar">
+                    <div class="xp-fill" th:style="'width:' + ${heroXp % 1000 / 10} + '%'"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Members list -->
+        <div class="card fade-in">
+            <div class="card-header">
+                <span class="card-label">Guilda</span>
+                <span style="font-size:11px; color:var(--text-3);" th:text="${memberCount} + ' membros'">0 membros</span>
+            </div>
+
+            <div th:if="${members.isEmpty()}" class="empty-state">
+                Nenhum herói registrado ainda.<br>
+                <span style="font-size:12px;">Abra uma issue com label <code>hero</code>.</span>
+            </div>
+
+            <div th:each="member : ${members}" class="member-item">
+                <div class="member-avatar">
+                    <img th:if="${member.avatarUrl != null and !member.avatarUrl.isEmpty()}"
+                         th:src="${member.avatarUrl}" alt="">
+                    <span th:unless="${member.avatarUrl != null and !member.avatarUrl.isEmpty()}"
+                          th:text="${member.heroName.substring(0,1)}">H</span>
+                    <span class="status-dot offline"></span>
+                </div>
+                <div class="member-info">
+                    <div class="member-name" th:text="${member.heroName}">Hero</div>
+                    <div class="member-class-tag" th:text="${member.heroClass} + ' · Lv ' + ${member.level}">Class</div>
+                </div>
+                <div class="member-xp" th:text="${member.xp} + ' XP'">0 XP</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Architecture (Journeyman+) ───────────────── -->
+    <div th:if="${isJourneymanPlus}" class="card gap-b fade-in">
+        <div class="card-header">
+            <span class="card-label">Arquitetura</span>
+            <span style="font-size:11px; color:var(--success);">desbloqueado</span>
+        </div>
+        <pre class="arch-pre">Frontend (SSE) ──► Guild Hub :8080 ──► Herói :8081 (phi3:mini)
+                              ├──► Herói :8082 (phi3:mini)
+                              ├──► Revisor :8093 (llama3.2)
+                              └──► Sintetizador :8090 (qwen2.5:7b)</pre>
+        <p style="font-size:12px; color:var(--text-3);">
+            Consulte <code>PROJECT_CONTEXT.md</code> para os contratos completos de mensagens AMQP.
+        </p>
+    </div>
+    <div th:unless="${isJourneymanPlus}" class="locked-card gap-b">
+        <div class="lock-icon">&#128274;</div>
+        <div class="locked-title">Arquitetura da Guilda</div>
+        <div class="locked-hint">Desbloqueado no nível Journeyman (3)</div>
+    </div>
+
+    <!-- ── Leaderboard (Expert+) ────────────────────── -->
+    <div th:if="${isExpertPlus}" class="card gap-b fade-in">
+        <div class="card-header">
+            <span class="card-label">XP Leaderboard</span>
+            <span style="font-size:11px; color:var(--purple);">expert+</span>
+        </div>
+        <div th:each="member, iter : ${members}"
+             style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-family:var(--mono); font-size:11px; color:var(--text-3); width:18px;"
+                      th:text="${iter.index + 1} + '.'">1.</span>
+                <span style="font-size:13px; font-weight:500;" th:text="${member.heroName}">Hero</span>
+            </div>
+            <span style="font-family:var(--mono); font-size:12px; color:var(--warning);"
+                  th:text="${member.xp} + ' XP'">0 XP</span>
+        </div>
+    </div>
+    <div th:unless="${isExpertPlus}" class="locked-card gap-b">
+        <div class="lock-icon">&#128274;</div>
+        <div class="locked-title">XP Leaderboard</div>
+        <div class="locked-hint">Desbloqueado no nível Expert (5)</div>
+    </div>
+
+    <!-- ── Event feed ───────────────────────────────── -->
+    <div class="card fade-in">
+        <div class="card-header">
+            <span class="card-label">Eventos ao Vivo</span>
+            <span id="sse-label" style="font-size:11px; color:var(--text-3);">conectando...</span>
+        </div>
+        <div class="event-feed" id="event-feed">
+            <div class="feed-empty">Aguardando eventos da guilda...</div>
+        </div>
+    </div>
+
+    <!-- ── Footer ───────────────────────────────────── -->
+    <footer class="page-footer">
+        <span th:text="'Última sync: ' + ${#dates.format(new java.util.Date(lastFetchMs), 'HH:mm:ss')}">sync</span>
+        <a class="switch-link" href="/">Voltar ao layout clássico</a>
+    </footer>
+
+</main>
+
+<script>
+    const dot   = document.getElementById('sse-dot');
+    const label = document.getElementById('sse-label');
+    const feed  = document.getElementById('event-feed');
+
+    const es = new EventSource('/events');
+
+    es.onopen = () => {
+        dot.className = 'sse-dot live';
+        label.textContent = 'ao vivo';
+        label.style.color = 'var(--success)';
+    };
+    es.onerror = () => {
+        dot.className = 'sse-dot error';
+        label.textContent = 'desconectado';
+        label.style.color = 'var(--danger)';
+    };
+
+    const EVENT_TYPES = {
+        GUILD_STATE:       { cls: 'type-guild',    label: 'GUILD'    },
+        HERO_JOINED:       { cls: 'type-hero',     label: 'ENTROU'   },
+        QUEST_UNLOCKED:    { cls: 'type-quest',    label: 'QUEST'    },
+        SOLUTION_RECEIVED: { cls: 'type-solution', label: 'SOLUÇÃO'  },
+        SOLUTION_REVIEWED: { cls: 'type-review',   label: 'REVISÃO'  },
+        REVISION_REQUESTED:{ cls: 'type-review',   label: 'REVISÃO'  },
+        HERO_ONLINE:       { cls: 'type-hero',     label: 'ONLINE'   },
+        HERO_OFFLINE:      { cls: 'type-hero',     label: 'OFFLINE'  },
+        SKILL_VALIDATED:   { cls: 'type-skill',    label: 'SKILL'    },
+    };
+
+    function addEvent(eventName, msg) {
+        const info = EVENT_TYPES[eventName] || { cls: 'type-guild', label: eventName };
+        const t = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const placeholder = feed.querySelector('.feed-empty');
+        if (placeholder) placeholder.remove();
+
+        const item = document.createElement('div');
+        item.className = 'event-item';
+        item.innerHTML =
+            `<span class="event-type-badge ${info.cls}">${info.label}</span>` +
+            `<span class="event-body">${msg}</span>` +
+            `<span class="event-time">${t}</span>`;
+        feed.prepend(item);
+
+        // keep max 50 events
+        while (feed.children.length > 50) feed.lastChild.remove();
+    }
+
+    es.addEventListener('GUILD_STATE', e => {
+        const d = JSON.parse(e.data);
+        addEvent('GUILD_STATE', `<strong>${d.heroes}</strong> heróis · <strong>${d.openQuests}</strong> quests abertas · <strong>${d.completedQuests}</strong> completadas`);
+    });
+    es.addEventListener('HERO_JOINED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('HERO_JOINED', `<strong>${d.heroId}</strong> entrou na guilda`);
+    });
+    es.addEventListener('QUEST_UNLOCKED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('QUEST_UNLOCKED', `<strong>[${d.rarity}]</strong> ${d.title} — +${d.xpReward} XP`);
+    });
+    es.addEventListener('SOLUTION_RECEIVED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('SOLUTION_RECEIVED', `<strong>${d.heroName}</strong> submeteu solução para ${d.questId}`);
+    });
+    es.addEventListener('SOLUTION_REVIEWED', e => {
+        const d = JSON.parse(e.data);
+        const verdict = d.approved ? '<strong style="color:var(--success)">aprovada</strong>' : '<strong style="color:var(--danger)">reprovada</strong>';
+        addEvent('SOLUTION_REVIEWED', `Quest <strong>${d.questId}</strong> ${verdict} (score ${Math.round((d.score||0)*100)}%)`);
+    });
+    es.addEventListener('REVISION_REQUESTED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('REVISION_REQUESTED', `Revisão solicitada para <strong>${d.questId}</strong> — tentativa ${d.attempt}`);
+    });
+    es.addEventListener('HERO_ONLINE', e => {
+        const d = JSON.parse(e.data);
+        addEvent('HERO_ONLINE', `<strong>${d.heroName}</strong> está online`);
+    });
+    es.addEventListener('HERO_OFFLINE', e => {
+        const d = JSON.parse(e.data);
+        addEvent('HERO_OFFLINE', `<strong>${d.heroName}</strong> ficou offline`);
+    });
+</script>
+
+</body>
+</html>
