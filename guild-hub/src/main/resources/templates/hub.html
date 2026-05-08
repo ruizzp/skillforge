@@ -129,7 +129,7 @@
         .activity-section { width: 100%; padding: 10px 0 4px 40px; border-top: 1px solid var(--border); margin-top: 4px; }
         .activity-header { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
         .activity-loading, .activity-empty { font-size: 11px; color: var(--text3); }
-        .activity-entry { display: grid; grid-template-columns: 80px 1fr 60px 40px; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+        .activity-entry { display: grid; grid-template-columns: 80px 1fr 60px 110px; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
         .activity-entry:last-child { border-bottom: none; }
         .activity-qid { color: var(--accent2); font-size: 10px; }
         .activity-qtitle { color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -493,31 +493,72 @@
         const container = document.getElementById('activity-' + heroId);
         if (!container || container.dataset.loaded) return;
         container.dataset.loaded = 'true';
+        container.querySelector('.activity-loading')?.remove();
+
         try {
-            const res = await fetch(`/api/heroes/${encodeURIComponent(heroId)}/activity`);
-            if (!res.ok) { container.querySelector('.activity-loading').textContent = ''; return; }
-            const entries = await res.json();
-            if (!entries || entries.length === 0) {
-                container.querySelector('.activity-loading').textContent = 'nenhuma quest completada ainda.';
-                container.querySelector('.activity-loading').className = 'activity-empty';
-                return;
+            const [actRes, qRes] = await Promise.all([
+                fetch(`/api/heroes/${encodeURIComponent(heroId)}/activity`),
+                fetch(`/api/heroes/${encodeURIComponent(heroId)}/quests`)
+            ]);
+
+            // quests ativas (in-progress e pending-review)
+            if (qRes.ok) {
+                const q = await qRes.json();
+                const active = [
+                    ...(q.inProgress    || []).map(q => ({ ...q, _state: 'in-progress' })),
+                    ...(q.pendingReview || []).map(q => ({ ...q, _state: 'pending-review' }))
+                ];
+                if (active.length > 0) {
+                    const hdr = document.createElement('div');
+                    hdr.className = 'activity-header';
+                    hdr.textContent = 'Ativas';
+                    container.appendChild(hdr);
+                    active.forEach(q => {
+                        const div = document.createElement('div');
+                        div.className = 'activity-entry';
+                        const stateColor = q._state === 'pending-review' ? 'var(--yellow)' : 'var(--accent2)';
+                        const stateLabel = q._state === 'pending-review' ? 'aguardando aprovação' : 'em andamento';
+                        const titleHtml  = q.url
+                            ? `<a href="${q.url}" target="_blank" rel="noopener" class="activity-qtitle">${q.title}</a>`
+                            : `<span class="activity-qtitle">${q.title}</span>`;
+                        div.innerHTML = `
+                            <span class="activity-qid">${q.id}</span>
+                            ${titleHtml}
+                            <span class="activity-xp">+${q.xpReward} XP</span>
+                            <span class="activity-conf" style="color:${stateColor}">${stateLabel}</span>`;
+                        container.appendChild(div);
+                    });
+                }
             }
-            container.querySelector('.activity-loading').remove();
-            entries.forEach(e => {
-                const div = document.createElement('div');
-                div.className = 'activity-entry';
-                const date = e.completedAt ? new Date(e.completedAt).toLocaleDateString('pt-BR') : '';
-                div.innerHTML = `
-                    <span class="activity-qid" title="${date}">${e.questId}</span>
-                    <span class="activity-qtitle" title="${e.questTitle}">${e.questTitle}</span>
-                    <span class="activity-xp">+${e.xp} XP</span>
-                    <span class="activity-conf">${e.confidencePct}%</span>`;
-                container.appendChild(div);
-            });
-        } catch (err) {
-            if (container.querySelector('.activity-loading'))
-                container.querySelector('.activity-loading').textContent = '';
-        }
+
+            // histórico de quests completadas
+            if (actRes.ok) {
+                const entries = await actRes.json();
+                if (entries && entries.length > 0) {
+                    const hdr = document.createElement('div');
+                    hdr.className = 'activity-header';
+                    hdr.style.marginTop = '8px';
+                    hdr.textContent = 'Concluídas';
+                    container.appendChild(hdr);
+                    entries.forEach(e => {
+                        const div = document.createElement('div');
+                        div.className = 'activity-entry';
+                        const date = e.completedAt ? new Date(e.completedAt).toLocaleDateString('pt-BR') : '';
+                        div.innerHTML = `
+                            <span class="activity-qid" title="${date}">${e.questId}</span>
+                            <span class="activity-qtitle" title="${e.questTitle}">${e.questTitle}</span>
+                            <span class="activity-xp">+${e.xp} XP</span>
+                            <span class="activity-conf">${e.confidencePct}%</span>`;
+                        container.appendChild(div);
+                    });
+                } else if (!container.querySelector('.activity-entry')) {
+                    const empty = document.createElement('div');
+                    empty.className = 'activity-empty';
+                    empty.textContent = 'nenhuma quest ainda.';
+                    container.appendChild(empty);
+                }
+            }
+        } catch (err) { /* silencioso — não quebra o drawer */ }
     }
 
     // ── SSE ──────────────────────────────────────────────────────────────────

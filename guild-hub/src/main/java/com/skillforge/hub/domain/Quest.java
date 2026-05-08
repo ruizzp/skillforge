@@ -13,7 +13,8 @@ public record Quest(
         String assignee,
         String url,
         int number,
-        String solvedBy   // heroId extraído do label "solved-by:{heroId}" — null se ainda não resolvida
+        String solvedBy,    // heroId do label "solved-by:{heroId}"
+        String assignedTo   // heroId do label "assigned-to:{heroId}"
 ) {
     public boolean isAvailable() { return "open".equals(status); }
     public boolean isCompleted() { return "closed".equals(status); }

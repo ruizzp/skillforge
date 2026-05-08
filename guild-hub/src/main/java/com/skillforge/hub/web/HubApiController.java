@@ -72,6 +72,19 @@ public class HubApiController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/heroes/{heroId}/quests")
+    public ResponseEntity<?> heroQuests(@PathVariable("heroId") String heroId) {
+        if (registry.getHeroById(heroId).isEmpty()) return ResponseEntity.notFound().build();
+        var all = questBoard.getQuests();
+        var inProgress    = all.stream()
+            .filter(q -> q.isAvailable() && heroId.equals(q.assignedTo()) && q.solvedBy() == null)
+            .toList();
+        var pendingReview = all.stream()
+            .filter(q -> q.isAvailable() && heroId.equals(q.solvedBy()))
+            .toList();
+        return ResponseEntity.ok(Map.of("inProgress", inProgress, "pendingReview", pendingReview));
+    }
+
     @GetMapping("/leaderboard")
     public ResponseEntity<List<LeaderboardEntry>> leaderboard() {
         return ResponseEntity.ok(registry.getLeaderboard());

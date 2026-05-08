@@ -149,8 +149,10 @@ public class QuestRoutingService {
         ), routingKey);
 
         log.info("Quest {} despachada para {} via {}", questId, route.elected().heroId(), routingKey);
-        try { github.setQuestStatus(quest.number(), "in-progress"); }
-        catch (Exception e) { log.warn("Não foi possível atualizar status da quest {}: {}", questId, e.getMessage()); }
+        try {
+            github.setQuestStatus(quest.number(), "in-progress");
+            github.addLabel(quest.number(), "assigned-to:" + route.elected().heroId());
+        } catch (Exception e) { log.warn("Não foi possível atualizar status da quest {}: {}", questId, e.getMessage()); }
 
         dashboard.broadcast("QUEST_ROUTED",
             ("{\"questId\":\"%s\",\"questTitle\":\"%s\",\"heroId\":\"%s\"," +

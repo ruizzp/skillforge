@@ -433,6 +433,7 @@ public class GitHubClient {
             List<String> requiredSkills = new ArrayList<>();
             int xpReward = 100;
             String solvedBy = null;
+            String assignedTo = null;
 
             for (JsonNode label : issue.path("labels")) {
                 String name = label.path("name").asText();
@@ -441,7 +442,8 @@ public class GitHubClient {
                 if (name.startsWith("xp:")) {
                     try { xpReward = Integer.parseInt(name.substring(3)); } catch (NumberFormatException ignored) {}
                 }
-                if (name.startsWith("solved-by:")) solvedBy = name.substring("solved-by:".length());
+                if (name.startsWith("solved-by:"))   solvedBy   = name.substring("solved-by:".length());
+                if (name.startsWith("assigned-to:")) assignedTo = name.substring("assigned-to:".length());
             }
 
             String assignee = Optional.ofNullable(issue.get("assignee"))
@@ -458,7 +460,7 @@ public class GitHubClient {
             }
 
             return Optional.of(new Quest(id, title, body, rarity, state,
-                    requiredSkills, xpReward, assignee, url, number, solvedBy));
+                    requiredSkills, xpReward, assignee, url, number, solvedBy, assignedTo));
         } catch (Exception e) {
             return Optional.empty();
         }
