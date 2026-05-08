@@ -1,0 +1,45 @@
+@baseUrl = http://localhost:8080
+
+### AMQP diagnostics — exchange, vhost, host, queue existence
+GET {{baseUrl}}/api/amqp-info
+
+###
+
+### Heroes online agora
+GET {{baseUrl}}/api/presence
+
+###
+
+### Tabela de roteamento (quests × heroes × skills)
+GET {{baseUrl}}/api/routing
+
+###
+
+### Forçar sync com GitHub (sem esperar ciclo de 5min)
+POST {{baseUrl}}/api/refresh
+
+###
+
+### Despachar quest para o hero eleito
+# Substituir QUEST-001 pelo questId retornado em /api/routing
+POST {{baseUrl}}/api/routing/QUEST-001/dispatch
+
+###
+
+### Listar todos os heróis registrados
+GET {{baseUrl}}/api/heroes
+
+###
+
+### Leaderboard por XP
+GET {{baseUrl}}/api/leaderboard
+
+###
+
+### Quests abertas
+GET {{baseUrl}}/api/quests?status=open
+
+###
+
+### Stats da guilda
+GET {{baseUrl}}/api/stats
