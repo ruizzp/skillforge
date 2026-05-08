@@ -11,6 +11,9 @@ import com.skillforge.hub.service.HeroPresenceService;
 import com.skillforge.hub.service.HeroRegistryService;
 import com.skillforge.hub.service.QuestBoardService;
 import com.skillforge.hub.service.QuestRoutingService;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,11 +31,18 @@ public class HubApiController {
     private final ProblemPublisher problemPublisher;
     private final HeroPresenceService presence;
     private final QuestRoutingService routing;
+    private final ConnectionFactory connectionFactory;
+
+    @Value("${guild.amqp.exchange}")
+    private String amqpExchange;
+
+    @Value("${guild.amqp.queue}")
+    private String amqpQueue;
 
     public HubApiController(HeroRegistryService registry, QuestBoardService questBoard,
                             ForkWatcher forkWatcher, GitHubClient github,
                             ProblemPublisher problemPublisher, HeroPresenceService presence,
-                            QuestRoutingService routing) {
+                            QuestRoutingService routing, ConnectionFactory connectionFactory) {
         this.registry = registry;
         this.questBoard = questBoard;
         this.forkWatcher = forkWatcher;
@@ -40,6 +50,7 @@ public class HubApiController {
         this.problemPublisher = problemPublisher;
         this.presence = presence;
         this.routing = routing;
+        this.connectionFactory = connectionFactory;
     }
 
     @GetMapping("/heroes")
@@ -226,6 +237,34 @@ public class HubApiController {
                 "dispatched", false,
                 "reason",     "Nenhum hero online com skills compatíveis"
             )));
+    }
+
+    @GetMapping("/amqp-info")
+    public ResponseEntity<?> amqpInfo() {
+        var admin = new RabbitAdmin(connectionFactory);
+        var cf = connectionFactory;
+
+        var knownQueues = java.util.List.of(
+            "hero-marketing.problems",
+            "skillforge.solutions",
+            "skillforge.heartbeats",
+            amqpQueue
+        );
+
+        var queueStatus = new java.util.LinkedHashMap<String, Object>();
+        for (String q : knownQueues) {
+            var props = admin.getQueueProperties(q);
+            queueStatus.put(q, props != null ? props : "NOT FOUND");
+        }
+
+        return ResponseEntity.ok(java.util.Map.of(
+            "exchange",    amqpExchange,
+            "problemsQueue", amqpQueue,
+            "vhost",       cf.getVirtualHost(),
+            "host",        cf instanceof org.springframework.amqp.rabbit.connection.CachingConnectionFactory ccf
+                           ? ccf.getHost() + ":" + ccf.getPort() : "unknown",
+            "queues",      queueStatus
+        ));
     }
 
     @PostMapping("/refresh")
