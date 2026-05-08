@@ -1,0 +1,11 @@
+{
+  "heroId":       "seu-hero-id",
+  "heroName":     "Nome do Hero",
+  "heroClass":    "Backend",
+  "skills":       ["skill-1", "skill-2"],
+  "specialty":    "Descreva em uma frase o que este hero faz e como resolve os problemas da guilda",
+  "endpoint":     "http://localhost:8081",
+  "model":        "phi3:mini",
+  "domain":       "guild",
+  "amqpRoutingKey": "problem.skill-1"
+}
