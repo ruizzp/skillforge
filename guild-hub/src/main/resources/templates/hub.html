@@ -124,6 +124,8 @@
         .approve-btn:disabled { opacity: 0.5; cursor: default; }
         .approve-btn.approved { background: var(--green); color: #000; border-color: var(--green); }
         .approve-btn.err { border-color: var(--red); color: var(--red); }
+        .pending-quest-header { font-size: 12px; font-weight: 500; padding: 10px 0 4px; color: var(--text2); border-bottom: 1px solid var(--border); }
+        .pending-multi { font-size: 10px; background: var(--bg3); border: 1px solid var(--yellow); color: var(--yellow); border-radius: 4px; padding: 1px 6px; margin-left: 8px; vertical-align: middle; }
 
         /* Hero activity in drawer */
         .activity-section { width: 100%; padding: 10px 0 4px 40px; border-top: 1px solid var(--border); margin-top: 4px; }
@@ -443,40 +445,70 @@
         list.innerHTML = '';
         if (!quests || quests.length === 0) { section.style.display = 'none'; return; }
         section.style.display = 'block';
+
+        // uma linha por (quest × solver) — permite escolher qual solução aprovar
         quests.forEach(q => {
-            const row = document.createElement('div');
-            row.className = 'pending-row';
-            row.dataset.questId = q.id;
             const titleHtml = q.url
                 ? `<a href="${q.url}" target="_blank" rel="noopener">${q.title}</a>`
                 : q.title;
             const skills = (q.requiredSkills || []).join(', ');
-            row.innerHTML = `
-                <div class="pending-info">
-                    <div class="pending-title">${titleHtml}</div>
-                    <div class="pending-meta">
-                        Hero: <span class="pending-hero">${q.solvedBy}</span>
-                        · ${skills}
-                        · <span style="color:var(--yellow)">+${q.xpReward} XP</span>
+            const solvers = q.solvers || [];
+
+            // cabeçalho da quest se tiver múltiplos solvers
+            if (solvers.length > 1) {
+                const hdr = document.createElement('div');
+                hdr.className = 'pending-quest-header';
+                hdr.innerHTML = `${titleHtml} <span class="pending-multi">${solvers.length} soluções</span>`;
+                list.appendChild(hdr);
+            }
+
+            solvers.forEach(solver => {
+                const row = document.createElement('div');
+                row.className = 'pending-row';
+                row.dataset.questId = q.id;
+                row.dataset.heroId  = solver;
+                row.innerHTML = `
+                    <div class="pending-info">
+                        <div class="pending-title">${solvers.length === 1 ? titleHtml : `↳ solução de <strong>${solver}</strong>`}</div>
+                        <div class="pending-meta">
+                            Hero: <span class="pending-hero">${solver}</span>
+                            · ${skills}
+                            · <span style="color:var(--yellow)">+${q.xpReward} XP</span>
+                        </div>
                     </div>
-                </div>
-                <button class="approve-btn" onclick="approveQuest('${q.id}', this)">✓ aprovar</button>`;
-            list.appendChild(row);
+                    <button class="approve-btn"
+                        onclick="approveQuest('${q.id}', '${solver}', this)">✓ aprovar</button>`;
+                list.appendChild(row);
+            });
         });
     }
 
-    async function approveQuest(questId, btn) {
+    async function approveQuest(questId, heroId, btn) {
         btn.disabled = true;
         btn.textContent = 'aprovando...';
         try {
-            const res = await fetch(`/api/routing/${encodeURIComponent(questId)}/approve`, { method: 'POST' });
+            const url = `/api/routing/${encodeURIComponent(questId)}/approve?heroId=${encodeURIComponent(heroId)}`;
+            const res = await fetch(url, { method: 'POST' });
             const d   = await res.json();
             if (d.approved) {
                 btn.textContent = '✓ aprovado';
                 btn.classList.add('approved');
                 addEvent('APROVADO', `${questId} → ${d.heroId} · skills validadas + XP creditado`);
+                // desabilita outros botões da mesma quest (outras soluções não aprovadas)
+                list.querySelectorAll(`.pending-row[data-quest-id="${questId}"] .approve-btn`).forEach(b => {
+                    if (b !== btn) { b.disabled = true; b.textContent = '—'; b.style.opacity = '0.3'; }
+                });
                 const row = btn.closest('.pending-row');
-                setTimeout(() => { row.style.opacity = '0'; row.style.transition = 'opacity 0.4s'; setTimeout(() => row.remove(), 400); }, 1200);
+                setTimeout(() => {
+                    row.style.opacity = '0'; row.style.transition = 'opacity 0.4s';
+                    setTimeout(() => {
+                        // remove todas as linhas desta quest
+                        list.querySelectorAll(`[data-quest-id="${questId}"]`).forEach(el => el.remove());
+                        const hdr = list.querySelector('.pending-quest-header');
+                        if (hdr) hdr.remove();
+                        if (!list.querySelector('.pending-row')) section.style.display = 'none';
+                    }, 400);
+                }, 1200);
             } else {
                 btn.textContent = d.reason || 'erro';
                 btn.classList.add('err');

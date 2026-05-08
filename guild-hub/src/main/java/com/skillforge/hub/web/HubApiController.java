@@ -77,10 +77,10 @@ public class HubApiController {
         if (registry.getHeroById(heroId).isEmpty()) return ResponseEntity.notFound().build();
         var all = questBoard.getQuests();
         var inProgress    = all.stream()
-            .filter(q -> q.isAvailable() && heroId.equals(q.assignedTo()) && q.solvedBy() == null)
+            .filter(q -> q.isAvailable() && heroId.equals(q.assignedTo()) && q.solvers().isEmpty())
             .toList();
         var pendingReview = all.stream()
-            .filter(q -> q.isAvailable() && heroId.equals(q.solvedBy()))
+            .filter(q -> q.isAvailable() && q.solvers().contains(heroId))
             .toList();
         return ResponseEntity.ok(Map.of("inProgress", inProgress, "pendingReview", pendingReview));
     }
@@ -103,7 +103,7 @@ public class HubApiController {
             case "open"           -> result.stream().filter(Quest::isAvailable).toList();
             case "completed"      -> result.stream().filter(Quest::isCompleted).toList();
             case "pending-review" -> result.stream()
-                .filter(q -> q.isAvailable() && q.solvedBy() != null).toList();
+                .filter(q -> q.isAvailable() && !q.solvers().isEmpty()).toList();
             default               -> result;
         };
 
@@ -290,8 +290,9 @@ public class HubApiController {
     }
 
     @PostMapping("/routing/{questId}/approve")
-    public ResponseEntity<?> approve(@PathVariable String questId) {
-        var result = routing.approve(questId);
+    public ResponseEntity<?> approve(@PathVariable String questId,
+                                     @RequestParam(required = false) String heroId) {
+        var result = routing.approve(questId, heroId);
         return result.approved()
             ? ResponseEntity.ok(result)
             : ResponseEntity.unprocessableEntity().body(result);

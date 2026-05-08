@@ -13,7 +13,7 @@ public record Quest(
         String assignee,
         String url,
         int number,
-        String solvedBy,    // heroId do label "solved-by:{heroId}"
+        List<String> solvers,   // heroIds de todos os labels "solved-by:{heroId}"
         String assignedTo   // heroId do label "assigned-to:{heroId}"
 ) {
     public boolean isAvailable() { return "open".equals(status); }

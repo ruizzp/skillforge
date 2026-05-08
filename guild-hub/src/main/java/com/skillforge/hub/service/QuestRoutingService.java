@@ -69,7 +69,7 @@ public class QuestRoutingService {
      * Aprova manualmente a solução de uma quest: fecha a issue, marca 'completed',
      * valida skills do hero e credita XP.
      */
-    public ApprovalResult approve(String questId) {
+    public ApprovalResult approve(String questId, String heroId) {
         questBoard.refresh();
         Quest quest = questBoard.getQuests().stream()
             .filter(q -> q.id().equals(questId))
@@ -78,18 +78,24 @@ public class QuestRoutingService {
         if (quest == null)
             return new ApprovalResult(false, questId, null, "quest não encontrada");
 
-        String heroId = quest.solvedBy();
-        if (heroId == null)
+        List<String> solvers = quest.solvers();
+        if (solvers.isEmpty())
             return new ApprovalResult(false, questId, null, "nenhuma solução registrada (label solved-by ausente)");
 
+        // usa o heroId passado, ou o primeiro da lista se não especificado
+        String resolvedHeroId = (heroId != null && !heroId.isBlank()) ? heroId : solvers.get(0);
+        if (!solvers.contains(resolvedHeroId))
+            return new ApprovalResult(false, questId, resolvedHeroId,
+                "hero '" + resolvedHeroId + "' não está entre os solvers desta quest");
+
         GuildMember hero = registry.getHeroes().stream()
-            .filter(h -> h.heroId().equals(heroId))
+            .filter(h -> h.heroId().equals(resolvedHeroId))
             .findFirst()
             .orElse(null);
-        String heroName = hero != null ? hero.heroName() : heroId;
+        String heroName = hero != null ? hero.heroName() : resolvedHeroId;
 
         SolutionMessage solution = new SolutionMessage(
-            questId, heroId, heroName, "", 1.0, "approved", java.time.Instant.now());
+            questId, resolvedHeroId, heroName, "", 1.0, "approved", java.time.Instant.now());
 
         try {
             github.setQuestStatus(quest.number(), "completed");
@@ -97,16 +103,16 @@ public class QuestRoutingService {
             solutionConsumer.triggerValidation(solution);
             questBoard.refresh();
 
-            log.info("Quest {} aprovada — hero: {} | issue #{} fechada", questId, heroId, quest.number());
+            log.info("Quest {} aprovada — hero: {} | issue #{} fechada", questId, resolvedHeroId, quest.number());
 
             dashboard.broadcast("QUEST_COMPLETED",
                 "{\"questId\":\"%s\",\"heroId\":\"%s\",\"heroName\":\"%s\",\"xpReward\":%d,\"questTitle\":\"%s\"}"
-                    .formatted(questId, heroId, heroName, quest.xpReward(), quest.title()));
+                    .formatted(questId, resolvedHeroId, heroName, quest.xpReward(), quest.title()));
 
-            return new ApprovalResult(true, questId, heroId, "aprovado");
+            return new ApprovalResult(true, questId, resolvedHeroId, "aprovado");
         } catch (Exception e) {
             log.error("Falha ao aprovar quest {}: {}", questId, e.getMessage());
-            return new ApprovalResult(false, questId, heroId, e.getMessage());
+            return new ApprovalResult(false, questId, resolvedHeroId, e.getMessage());
         }
     }
 

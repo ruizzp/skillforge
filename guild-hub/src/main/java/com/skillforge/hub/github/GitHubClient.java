@@ -432,7 +432,7 @@ public class GitHubClient {
             QuestRarity rarity = QuestRarity.COMMON;
             List<String> requiredSkills = new ArrayList<>();
             int xpReward = 100;
-            String solvedBy = null;
+            List<String> solvers   = new ArrayList<>();
             String assignedTo = null;
 
             for (JsonNode label : issue.path("labels")) {
@@ -442,7 +442,7 @@ public class GitHubClient {
                 if (name.startsWith("xp:")) {
                     try { xpReward = Integer.parseInt(name.substring(3)); } catch (NumberFormatException ignored) {}
                 }
-                if (name.startsWith("solved-by:"))   solvedBy   = name.substring("solved-by:".length());
+                if (name.startsWith("solved-by:"))   solvers.add(name.substring("solved-by:".length()));
                 if (name.startsWith("assigned-to:")) assignedTo = name.substring("assigned-to:".length());
             }
 
@@ -460,7 +460,7 @@ public class GitHubClient {
             }
 
             return Optional.of(new Quest(id, title, body, rarity, state,
-                    requiredSkills, xpReward, assignee, url, number, solvedBy, assignedTo));
+                    requiredSkills, xpReward, assignee, url, number, solvers, assignedTo));
         } catch (Exception e) {
             return Optional.empty();
         }
