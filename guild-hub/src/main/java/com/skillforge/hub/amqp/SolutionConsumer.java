@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class SolutionConsumer {
@@ -24,6 +27,9 @@ public class SolutionConsumer {
     private final QuestBoardService questBoard;
     private final GitHubClient github;
     private final HubDashboardController dashboard;
+
+    // questId → última solução recebida, aguardando aprovação humana
+    private final Map<String, SolutionMessage> pendingSolutions = new ConcurrentHashMap<>();
 
     @Value("${skillforge.skill-validation.confidence-threshold:0.75}")
     private double confidenceThreshold;
@@ -53,6 +59,7 @@ public class SolutionConsumer {
         log.debug("Solução completa de {}:\n{}", msg.heroId(), msg.solution());
 
         if (!msg.questId().startsWith("probe:")) {
+            pendingSolutions.put(msg.questId(), msg);
             questBoard.getQuests().stream()
                 .filter(q -> q.id().equals(msg.questId()))
                 .findFirst()
@@ -65,6 +72,18 @@ public class SolutionConsumer {
         if (msg.confidence() >= confidenceThreshold) {
             autoValidateSkills(msg);
         }
+    }
+
+    public Optional<SolutionMessage> getPendingSolution(String questId) {
+        return Optional.ofNullable(pendingSolutions.get(questId));
+    }
+
+    public void removePendingSolution(String questId) {
+        pendingSolutions.remove(questId);
+    }
+
+    public void triggerValidation(SolutionMessage msg) {
+        autoValidateSkills(msg);
     }
 
     private void autoValidateSkills(SolutionMessage msg) {

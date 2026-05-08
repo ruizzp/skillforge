@@ -2,6 +2,8 @@ package com.skillforge.hub.service;
 
 import com.skillforge.hub.amqp.ProblemMessage;
 import com.skillforge.hub.amqp.ProblemPublisher;
+import com.skillforge.hub.amqp.SolutionConsumer;
+import com.skillforge.hub.amqp.SolutionMessage;
 import com.skillforge.hub.domain.GuildMember;
 import com.skillforge.hub.domain.Quest;
 import com.skillforge.hub.github.GitHubClient;
@@ -24,19 +26,22 @@ public class QuestRoutingService {
     private final ProblemPublisher publisher;
     private final HubDashboardController dashboard;
     private final GitHubClient github;
+    private final SolutionConsumer solutionConsumer;
 
     public QuestRoutingService(HeroRegistryService registry,
                                 HeroPresenceService presence,
                                 QuestBoardService questBoard,
                                 ProblemPublisher publisher,
                                 HubDashboardController dashboard,
-                                GitHubClient github) {
-        this.registry   = registry;
-        this.presence   = presence;
-        this.questBoard = questBoard;
-        this.publisher  = publisher;
-        this.dashboard  = dashboard;
-        this.github     = github;
+                                GitHubClient github,
+                                SolutionConsumer solutionConsumer) {
+        this.registry         = registry;
+        this.presence         = presence;
+        this.questBoard       = questBoard;
+        this.publisher        = publisher;
+        this.dashboard        = dashboard;
+        this.github           = github;
+        this.solutionConsumer = solutionConsumer;
     }
 
     public record HeroMatch(
@@ -56,6 +61,44 @@ public class QuestRoutingService {
         List<HeroMatch> candidates,   // todos com skill compatível
         HeroMatch elected             // melhor candidato online (null se nenhum online)
     ) {}
+
+    public record ApprovalResult(boolean approved, String questId, String heroId, String reason) {}
+
+    /**
+     * Aprova manualmente a solução de uma quest: fecha a issue, marca 'completed',
+     * valida skills do hero e credita XP.
+     */
+    public ApprovalResult approve(String questId) {
+        Quest quest = questBoard.getQuests().stream()
+            .filter(q -> q.id().equals(questId))
+            .findFirst()
+            .orElse(null);
+        if (quest == null)
+            return new ApprovalResult(false, questId, null, "quest não encontrada");
+
+        SolutionMessage solution = solutionConsumer.getPendingSolution(questId).orElse(null);
+        if (solution == null)
+            return new ApprovalResult(false, questId, null, "nenhuma solução pendente para esta quest");
+
+        try {
+            github.setQuestStatus(quest.number(), "completed");
+            github.closeIssue(quest.number());
+            solutionConsumer.triggerValidation(solution);
+            solutionConsumer.removePendingSolution(questId);
+            questBoard.refresh();
+
+            log.info("Quest {} aprovada — hero: {} | issue #{} fechada", questId, solution.heroId(), quest.number());
+
+            dashboard.broadcast("QUEST_COMPLETED",
+                "{\"questId\":\"%s\",\"heroId\":\"%s\",\"heroName\":\"%s\",\"xpReward\":%d}"
+                    .formatted(questId, solution.heroId(), solution.heroName(), quest.xpReward()));
+
+            return new ApprovalResult(true, questId, solution.heroId(), "aprovado");
+        } catch (Exception e) {
+            log.error("Falha ao aprovar quest {}: {}", questId, e.getMessage());
+            return new ApprovalResult(false, questId, solution.heroId(), e.getMessage());
+        }
+    }
 
     /**
      * Retorna o mapa de roteamento para todas as quests abertas:

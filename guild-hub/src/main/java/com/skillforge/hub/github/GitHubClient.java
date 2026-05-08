@@ -389,6 +389,12 @@ public class GitHubClient {
         }
     }
 
+    public void closeIssue(int issueNumber) throws Exception {
+        requireToken("closeIssue");
+        String url = "%s/repos/%s/%s/issues/%d".formatted(API, owner, repo, issueNumber);
+        patch(url, mapper.writeValueAsString(Map.of("state", "closed")));
+    }
+
     // ── HTTP ────────────────────────────────────────────────────────────────
 
     private JsonNode get(String url) throws Exception {
@@ -400,6 +406,18 @@ public class GitHubClient {
         if (!token.isBlank()) builder.header("Authorization", "Bearer " + token);
         HttpResponse<String> response = http.send(builder.build(), HttpResponse.BodyHandlers.ofString());
         return mapper.readTree(response.body());
+    }
+
+    private void patch(String url, String body) throws Exception {
+        var request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Accept", "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", "2022-11-28")
+                .header("Authorization", "Bearer " + token)
+                .header("Content-Type", "application/json")
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        http.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     private void delete(String url) throws Exception {

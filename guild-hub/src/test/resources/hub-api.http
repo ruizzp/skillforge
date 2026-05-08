@@ -26,6 +26,11 @@ POST {{baseUrl}}/api/routing/QUEST-001/dispatch
 
 ###
 
+### Aprovar solução: fecha issue, label 'completed', valida skills, credita XP
+POST {{baseUrl}}/api/routing/QUEST-001/approve
+
+###
+
 ### Listar todos os heróis registrados
 GET {{baseUrl}}/api/heroes
 

@@ -267,6 +267,14 @@ public class HubApiController {
         ));
     }
 
+    @PostMapping("/routing/{questId}/approve")
+    public ResponseEntity<?> approve(@PathVariable String questId) {
+        var result = routing.approve(questId);
+        return result.approved()
+            ? ResponseEntity.ok(result)
+            : ResponseEntity.unprocessableEntity().body(result);
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh() {
         registry.refresh();
