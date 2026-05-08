@@ -72,7 +72,7 @@ public class HubDashboardController {
         List.copyOf(emitters).forEach(e -> {
             try {
                 e.send(SseEmitter.event().name(eventName).data(data));
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 emitters.remove(e);
             }
         });
