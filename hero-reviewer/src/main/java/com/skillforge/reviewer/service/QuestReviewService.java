@@ -131,8 +131,8 @@ public class QuestReviewService {
 
             // Apply approval threshold: even if LLM says approved, require minimum score
             if (approved && score < approvalThreshold) {
-                log.info("Quest {} score {:.2f} abaixo do threshold {:.2f} — rejeitando",
-                        msg.questId(), score, approvalThreshold);
+                log.info("Quest {} score {} abaixo do threshold {} — rejeitando",
+                        msg.questId(), "%.2f".formatted(score), "%.2f".formatted(approvalThreshold));
                 approved = false;
                 if (feedback.isBlank()) {
                     feedback = "Score de qualidade (%s) abaixo do mínimo exigido (%.0f%%). %s"
