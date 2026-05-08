@@ -35,8 +35,8 @@ public class AmqpConfig {
     }
 
     @Bean
-    Binding problemBinding(Queue problemQueue, TopicExchange skillforgeExchange) {
-        return BindingBuilder.bind(problemQueue).to(skillforgeExchange).with(KEY);
+    Binding problemBinding(TopicExchange skillforgeExchange) {
+        return BindingBuilder.bind(problemQueue()).to(skillforgeExchange).with(KEY);
     }
 
     @Bean
@@ -54,8 +54,8 @@ public class AmqpConfig {
     }
 
     @Bean
-    Binding revisionBinding(Queue revisionQueue, TopicExchange skillforgeExchange) {
-        return BindingBuilder.bind(revisionQueue).to(skillforgeExchange).with("revision." + heroId);
+    Binding revisionBinding(TopicExchange skillforgeExchange) {
+        return BindingBuilder.bind(revisionQueue()).to(skillforgeExchange).with("revision." + heroId);
     }
 
     @Bean
