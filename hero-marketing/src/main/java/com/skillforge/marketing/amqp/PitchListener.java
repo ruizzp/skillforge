@@ -60,7 +60,7 @@ public class PitchListener {
             Map<String, String> docs = generator.generate(brief);
             PitchDraft draft = validator.validate(docs.get("guildPitch"), docs.get("investorOnePager"));
 
-            log.info("Pitch gerado — confidence: {:.0f}% | valid: {}", draft.confidence() * 100, draft.valid());
+            log.info("Pitch gerado — confidence: {}% | valid: {}", "%.0f".formatted(draft.confidence() * 100), draft.valid());
 
             // Posta os artefatos como comentário na issue da quest
             github.postArtifacts(msg.questUrl(), msg.questId(), draft);
@@ -73,7 +73,7 @@ public class PitchListener {
                 "claude-sonnet-4-6", Instant.now()
             );
             rabbit.convertAndSend(exchange, SOLUTION_ROUTING_KEY, solution);
-            log.info("Solução publicada para quest {} — confidence: {:.0f}%", msg.questId(), draft.confidence() * 100);
+            log.info("Solução publicada para quest {} — confidence: {}%", msg.questId(), "%.0f".formatted(draft.confidence() * 100));
 
         } catch (Exception e) {
             log.error("Falha ao processar quest {}: {}", msg.questId(), e.getMessage());

@@ -76,11 +76,11 @@ public class PitchValidatorService {
         double confidence = computeConfidence(avg, defensavel, ctaOk);
         boolean valid = avg >= 6.0 && defensavel && ctaOk;
 
-        log.info("Validação — avg: {:.1f} (guild avg: {:.1f} | investor avg: {:.1f}), confidence: {:.2f}, valid: {}",
-            avg,
-            (gClareza + gDor + gDiferencial + gCredibilidade) / 4.0,
-            (iClareza + iDor + iDiferencial + iCredibilidade) / 4.0,
-            confidence, valid);
+        log.info("Validação — avg: {} (guild avg: {} | investor avg: {}), confidence: {}, valid: {}",
+            "%.1f".formatted(avg),
+            "%.1f".formatted((gClareza + gDor + gDiferencial + gCredibilidade) / 4.0),
+            "%.1f".formatted((iClareza + iDor + iDiferencial + iCredibilidade) / 4.0),
+            "%.2f".formatted(confidence), valid);
 
         return new PitchDraft(guildPitch, investorOnePager,
             clareza, dor, diferencial, credibilidade,
