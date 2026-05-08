@@ -52,6 +52,7 @@ public class HubDashboardController {
         emitters.add(emitter);
         emitter.onCompletion(() -> emitters.remove(emitter));
         emitter.onTimeout(() -> emitters.remove(emitter));
+        emitter.onError(ex -> emitters.remove(emitter));
 
         Executors.newVirtualThreadPerTaskExecutor().submit(() -> {
             try {
