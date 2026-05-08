@@ -99,7 +99,72 @@ Threshold padrão: `0.75`. Abaixo disso, a solução chega mas não valida skill
 
 ---
 
-### 4. Seleção de Modelo
+### 4. Configuração AMQP — Padrão Obrigatório
+
+Todo hero tem **exatamente** este `AmqpConfig`. Não invente variações.
+
+```java
+@Configuration
+public class AmqpConfig {
+
+    static final String QUEUE = "{hero-id}.problems";   // ex: hero-marketing.problems
+    static final String KEY   = "problem.{skill}";      // ex: problem.#  ou  problem.java
+
+    @Value("${guild.amqp.exchange:skillforge}")
+    private String exchangeName;
+
+    @Bean TopicExchange skillforgeExchange() {
+        return new TopicExchange(exchangeName, true, false);
+    }
+
+    @Bean Queue problemQueue() {
+        return QueueBuilder.durable(QUEUE).build();
+    }
+
+    @Bean Binding problemBinding(Queue problemQueue, TopicExchange skillforgeExchange) {
+        return BindingBuilder.bind(problemQueue).to(skillforgeExchange).with(KEY);
+    }
+
+    // ⚠️ CRÍTICO: injete ObjectMapper + defina TypePrecedence.INFERRED
+    @Bean Jackson2JsonMessageConverter messageConverter(ObjectMapper mapper) {
+        var converter = new Jackson2JsonMessageConverter(mapper);
+        converter.setTypePrecedence(Jackson2JavaTypeMapper.TypePrecedence.INFERRED);
+        return converter;
+    }
+
+    @Bean RabbitTemplate rabbitTemplate(ConnectionFactory cf, Jackson2JsonMessageConverter conv) {
+        var t = new RabbitTemplate(cf);
+        t.setMessageConverter(conv);
+        return t;
+    }
+}
+```
+
+**Por que cada detalhe importa:**
+
+| Detalhe | Consequência se omitido |
+|---|---|
+| `TypePrecedence.INFERRED` | `ClassNotFoundException` em runtime — o converter tenta instanciar `com.skillforge.hub.amqp.ProblemMessage`, que não existe no classpath do hero |
+| `ObjectMapper mapper` injetado | Usa um `ObjectMapper` sem os módulos do Spring Boot registrados (Java time, Kotlin, etc.) — falha ao deserializar campos de data |
+| `RabbitTemplate` com converter configurado | Mensagens publicadas pelo hero saem como bytes serializados pelo Java, não como JSON — o hub não consegue deserializar |
+| `@Value("${...exchange:skillforge}")` com default | Sem default, a app explode no startup se `AMQP_EXCHANGE` não estiver definida |
+
+**Convenção de nomes:**
+
+| Elemento | Padrão | Exemplo |
+|---|---|---|
+| Queue | `{hero-id}.problems` | `hero-marketing.problems` |
+| Routing key (consumer) | `problem.{skill}` ou `problem.#` | `problem.pitch-design` |
+| Routing key (publisher) | `solution.{skill}` | `solution.pitch-design` |
+| Exchange bean | `skillforgeExchange` | igual em todos |
+
+**`problem.#` vs `problem.{skill}`:**  
+Use `problem.#` quando o hero aceita qualquer skill (raro — heroes são especialistas).  
+Use `problem.{skill-exato}` para heroes com escopo restrito. Mais de uma skill → mais de um binding.
+
+---
+
+### 5. Seleção de Modelo
 
 Siga a hierarquia do `CLAUDE.md`:
 
@@ -176,6 +241,15 @@ O fallback não precisa ser inteligente — precisa ser honesto e funcional.
 [ ] confidence sempre retornado (nunca null, nunca omitido)
 [ ] Pelo menos 3 casos de teste documentados (happy, edge, falha)
 [ ] skill declarada no manifesto existe no skill taxonomy da guilda
+
+AMQP (use o padrão da seção 4 — não adapte livremente):
+[ ] AmqpConfig com TypePrecedence.INFERRED no messageConverter
+[ ] ObjectMapper injetado no messageConverter (não new Jackson2JsonMessageConverter())
+[ ] RabbitTemplate configurado com o messageConverter
+[ ] Queue nomeada {hero-id}.problems
+[ ] Routing key específica — não usar problem.# sem justificativa
+[ ] @Value("${guild.amqp.exchange:skillforge}") com default
+[ ] HeartbeatPublisher presente — sem heartbeat o hero não aparece no roteamento
 ```
 
 ---

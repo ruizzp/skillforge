@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,13 +19,16 @@ public class QuestProblemConsumer {
     private final RabbitTemplate amqp;
     private final ObjectMapper mapper;
 
+    @Value("${guild.amqp.exchange:skillforge}")
+    private String exchange;
+
     public QuestProblemConsumer(QuestGuardianService guardian, RabbitTemplate amqp, ObjectMapper mapper) {
         this.guardian = guardian;
         this.amqp = amqp;
         this.mapper = mapper;
     }
 
-    @RabbitListener(queues = AmqpConfig.QUEST_QUEUE)
+    @RabbitListener(queues = AmqpConfig.QUEUE)
     public void onProblem(ProblemMessage msg) {
         log.info("Quest request recebido — de: {} | questId: {}", msg.heroId(), msg.questId());
 
@@ -41,7 +45,7 @@ public class QuestProblemConsumer {
                 draft.model()
             );
 
-            amqp.convertAndSend(AmqpConfig.EXCHANGE, "solution", solution);
+            amqp.convertAndSend(exchange, "solution.quest-design", solution);
             log.info("Quest draft publicado — domínio: {} | confiança: {}%",
                 request.domain(), (int)(draft.confidence() * 100));
 
@@ -52,7 +56,7 @@ public class QuestProblemConsumer {
                 msg.questId(), "guild-quest", "Guild Quest",
                 "Falha ao gerar quest: " + e.getMessage(), 0.0, "error"
             );
-            amqp.convertAndSend(AmqpConfig.EXCHANGE, "solution", failure);
+            amqp.convertAndSend(exchange, "solution.quest-design", failure);
         }
     }
 }

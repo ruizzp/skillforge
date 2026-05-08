@@ -1,8 +1,11 @@
 package com.skillforge.hero.amqp;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.Jackson2JavaTypeMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,36 +13,42 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AmqpConfig {
 
-    public static final String HEARTBEATS_QUEUE = "skillforge.heartbeats";
+    // Rename to match your hero: "{hero-id}.problems"
+    static final String QUEUE = "hero-template.problems";
+    // Adjust routing key to match the skills your hero resolves
+    static final String KEY   = "problem.#";
 
-    @Value("${guild.amqp.exchange}")
+    @Value("${guild.amqp.exchange:skillforge}")
     private String exchangeName;
 
-    @Value("${guild.amqp.queue}")
-    private String queueName;
-
     @Bean
-    public TopicExchange skillforgeExchange() {
+    TopicExchange skillforgeExchange() {
         return new TopicExchange(exchangeName, true, false);
     }
 
     @Bean
-    public Queue problemQueue() {
-        return new Queue(queueName, true);
+    Queue problemQueue() {
+        return QueueBuilder.durable(QUEUE).build();
     }
 
     @Bean
-    public Queue heartbeatQueue() {
-        return new Queue(HEARTBEATS_QUEUE, true);
+    Binding problemBinding(Queue problemQueue, TopicExchange skillforgeExchange) {
+        return BindingBuilder.bind(problemQueue).to(skillforgeExchange).with(KEY);
     }
 
     @Bean
-    public Binding heartbeatBinding(Queue heartbeatQueue, TopicExchange skillforgeExchange) {
-        return BindingBuilder.bind(heartbeatQueue).to(skillforgeExchange).with("heartbeat");
+    Jackson2JsonMessageConverter messageConverter(ObjectMapper mapper) {
+        var converter = new Jackson2JsonMessageConverter(mapper);
+        // REQUIRED: use the @RabbitListener parameter type, not the __TypeId__ header sent by hub.
+        // Without this, deserialization fails with ClassNotFoundException on the hub's package.
+        converter.setTypePrecedence(Jackson2JavaTypeMapper.TypePrecedence.INFERRED);
+        return converter;
     }
 
     @Bean
-    public MessageConverter jsonConverter() {
-        return new Jackson2JsonMessageConverter();
+    RabbitTemplate rabbitTemplate(ConnectionFactory cf, Jackson2JsonMessageConverter conv) {
+        var t = new RabbitTemplate(cf);
+        t.setMessageConverter(conv);
+        return t;
     }
 }
