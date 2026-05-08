@@ -2,6 +2,7 @@ package com.skillforge.hub.service;
 
 import com.skillforge.hub.amqp.ProblemMessage;
 import com.skillforge.hub.amqp.ProblemPublisher;
+import com.skillforge.hub.amqp.ReviewMessage;
 import com.skillforge.hub.amqp.SolutionConsumer;
 import com.skillforge.hub.amqp.SolutionMessage;
 import com.skillforge.hub.domain.GuildMember;
@@ -10,6 +11,8 @@ import com.skillforge.hub.github.GitHubClient;
 import com.skillforge.hub.web.HubDashboardController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -27,6 +30,10 @@ public class QuestRoutingService {
     private final HubDashboardController dashboard;
     private final GitHubClient github;
     private final SolutionConsumer solutionConsumer;
+    private final RabbitTemplate rabbit;
+
+    @Value("${guild.amqp.exchange:skillforge}")
+    private String exchange;
 
     public QuestRoutingService(HeroRegistryService registry,
                                 HeroPresenceService presence,
@@ -34,7 +41,8 @@ public class QuestRoutingService {
                                 ProblemPublisher publisher,
                                 HubDashboardController dashboard,
                                 GitHubClient github,
-                                SolutionConsumer solutionConsumer) {
+                                SolutionConsumer solutionConsumer,
+                                RabbitTemplate rabbit) {
         this.registry         = registry;
         this.presence         = presence;
         this.questBoard       = questBoard;
@@ -42,6 +50,7 @@ public class QuestRoutingService {
         this.dashboard        = dashboard;
         this.github           = github;
         this.solutionConsumer = solutionConsumer;
+        this.rabbit           = rabbit;
     }
 
     public record HeroMatch(
@@ -64,6 +73,58 @@ public class QuestRoutingService {
     ) {}
 
     public record ApprovalResult(boolean approved, String questId, String heroId, String reason) {}
+
+    public record RereviewResult(boolean queued, String questId, String heroId, String reason) {}
+
+    /**
+     * Força uma nova revisão automatizada da solução já submetida.
+     * Busca o último comentário de solução na issue e re-publica ReviewMessage.
+     */
+    public RereviewResult rereview(String questId, String heroId, String providedSolution) {
+        Quest quest = questBoard.getQuests().stream()
+            .filter(q -> q.id().equals(questId))
+            .findFirst()
+            .orElse(null);
+        if (quest == null)
+            return new RereviewResult(false, questId, heroId, "Quest não encontrada");
+
+        String resolvedHeroId = (heroId == null || heroId.isBlank())
+            ? (quest.solvers().isEmpty() ? null : quest.solvers().get(0))
+            : heroId;
+        if (resolvedHeroId == null)
+            return new RereviewResult(false, questId, heroId, "Nenhum solver encontrado para esta quest");
+
+        String solution;
+        if (providedSolution != null && !providedSolution.isBlank()) {
+            solution = providedSolution;
+        } else {
+            solution = github.fetchIssueComments(quest.number()).stream()
+                .filter(c -> !c.body().startsWith("## Revisão Solicitada"))
+                .filter(c -> !c.body().startsWith("✓ **Skill"))
+                .reduce((a, b) -> b)
+                .map(GitHubClient.CommentEntry::body)
+                .orElse("");
+        }
+
+        if (solution.isBlank())
+            return new RereviewResult(false, questId, resolvedHeroId, "Nenhuma solução encontrada");
+
+        String heroName = registry.getHeroById(resolvedHeroId)
+            .map(h -> h.heroName())
+            .orElse(resolvedHeroId);
+
+        String primarySkill = quest.requiredSkills().isEmpty()
+            ? "general"
+            : normalizeSkill(quest.requiredSkills().get(0));
+
+        rabbit.convertAndSend(exchange, "review." + primarySkill, new ReviewMessage(
+            quest.id(), quest.number(), quest.title(), quest.body(),
+            solution, resolvedHeroId, heroName, 0.0, "re-review", quest.revisionCount()
+        ));
+
+        log.info("Re-revisão forçada — quest: {} | herói: {} | routing: review.{}", questId, resolvedHeroId, primarySkill);
+        return new RereviewResult(true, questId, resolvedHeroId, "Re-revisão enviada via review." + primarySkill);
+    }
 
     /**
      * Aprova manualmente a solução de uma quest: fecha a issue, marca 'completed',

@@ -307,6 +307,19 @@ public class HubApiController {
             : ResponseEntity.unprocessableEntity().body(result);
     }
 
+    @PostMapping("/routing/{questId}/rereview")
+    public ResponseEntity<?> rereview(@PathVariable String questId,
+                                      @RequestBody(required = false) RereviewRequest body) {
+        String heroId   = body != null ? body.heroId()   : null;
+        String solution = body != null ? body.solution() : null;
+        var result = routing.rereview(questId, heroId, solution);
+        return result.queued()
+            ? ResponseEntity.accepted().body(result)
+            : ResponseEntity.unprocessableEntity().body(result);
+    }
+
+    public record RereviewRequest(String heroId, String solution) {}
+
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh() {
         registry.refresh();
