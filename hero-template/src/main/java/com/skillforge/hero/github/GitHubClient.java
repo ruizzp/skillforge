@@ -195,6 +195,27 @@ public class GitHubClient {
         }
     }
 
+    public String fetchIssueBody(int issueNumber) {
+        try {
+            String url = "%s/repos/%s/%s/issues/%d".formatted(API, owner, repo, issueNumber);
+            return get(url).path("body").asText("");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    public List<String> fetchIssueComments(int issueNumber) {
+        try {
+            String url = "%s/repos/%s/%s/issues/%d/comments?per_page=100".formatted(API, owner, repo, issueNumber);
+            JsonNode comments = get(url);
+            List<String> bodies = new ArrayList<>();
+            for (JsonNode c : comments) bodies.add(c.path("body").asText(""));
+            return bodies;
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     public void postComment(int issueNumber, String body) throws Exception {
         requireToken("postComment");
         String url = "%s/repos/%s/%s/issues/%d/comments".formatted(API, owner, repo, issueNumber);

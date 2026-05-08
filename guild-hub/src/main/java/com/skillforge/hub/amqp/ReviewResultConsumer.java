@@ -99,28 +99,13 @@ public class ReviewResultConsumer {
             log.error("Falha ao registrar revisão para quest {}: {}", quest.id(), e.getMessage());
         }
 
-        // Re-publish ProblemMessage with feedback embedded in questBody
-        String updatedBody = quest.body() + "\n\n---\n## Feedback da Revisão (tentativa %d/%d)\n\n%s"
-                .formatted(nextAttempt, maxRevisions, result.feedback());
-
-        String primarySkill = quest.requiredSkills().isEmpty()
-                ? "general"
-                : normalizeSkill(quest.requiredSkills().get(0));
-        String routingKey = "problem." + primarySkill;
-
-        ProblemMessage problem = new ProblemMessage(
-                quest.id(),
-                quest.title(),
-                quest.requiredSkills(),
-                quest.xpReward(),
-                result.heroId(),
-                quest.url(),
-                updatedBody
+        // Notify the hero via reference-only message — hero fetches problem + feedback from GitHub
+        RevisionMessage revision = new RevisionMessage(
+                quest.id(), quest.number(), result.heroId(), nextAttempt, quest.requiredSkills()
         );
-
-        rabbit.convertAndSend(exchange, routingKey, problem);
-        log.info("Quest {} re-despachada com feedback via '{}' (tentativa {}/{})",
-                quest.id(), routingKey, nextAttempt, maxRevisions);
+        rabbit.convertAndSend(exchange, "revision." + result.heroId(), revision);
+        log.info("Quest {} — revisão {} notificada via 'revision.{}' (herói buscará feedback da issue #{})",
+                quest.id(), nextAttempt, result.heroId(), quest.number());
 
         dashboard.broadcast("REVISION_REQUESTED",
                 "{\"questId\":\"%s\",\"heroId\":\"%s\",\"attempt\":%d,\"feedback\":\"%s\"}"

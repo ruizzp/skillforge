@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: skillforge-hero
+
+skillforge:
+  hero:
+    id: hero-template  # rename when copying — must match heroId in manifest.json
   rabbitmq:
     addresses: ${AMQP_URL}
     ssl:

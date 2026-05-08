@@ -21,6 +21,9 @@ public class AmqpConfig {
     @Value("${guild.amqp.exchange:skillforge}")
     private String exchangeName;
 
+    @Value("${skillforge.hero.id:hero-template}")
+    private String heroId;
+
     @Bean
     TopicExchange skillforgeExchange() {
         return new TopicExchange(exchangeName, true, false);
@@ -43,6 +46,16 @@ public class AmqpConfig {
         // Without this, deserialization fails with ClassNotFoundException on the hub's package.
         converter.setTypePrecedence(Jackson2JavaTypeMapper.TypePrecedence.INFERRED);
         return converter;
+    }
+
+    @Bean
+    Queue revisionQueue() {
+        return QueueBuilder.durable(heroId + ".revisions").build();
+    }
+
+    @Bean
+    Binding revisionBinding(Queue revisionQueue, TopicExchange skillforgeExchange) {
+        return BindingBuilder.bind(revisionQueue).to(skillforgeExchange).with("revision." + heroId);
     }
 
     @Bean
