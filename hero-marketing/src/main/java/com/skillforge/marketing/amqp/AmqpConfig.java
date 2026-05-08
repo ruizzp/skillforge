@@ -6,15 +6,18 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JavaTypeMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class AmqpConfig {
 
-    static final String QUEUE    = "hero-marketing.problems";
-    static final String EXCHANGE = "skillforge";
-    static final String KEY      = "problem.#";  // recebe qualquer problema roteado para skills deste hero
+    static final String QUEUE = "hero-marketing.problems";
+    static final String KEY   = "problem.#";
+
+    @Value("${guild.amqp.exchange:skillforge}")
+    private String exchangeName;
 
     @Bean
     Queue pitchQueue() {
@@ -23,7 +26,7 @@ public class AmqpConfig {
 
     @Bean
     TopicExchange skillforgeExchange() {
-        return new TopicExchange(EXCHANGE, true, false);
+        return new TopicExchange(exchangeName, true, false);
     }
 
     @Bean
