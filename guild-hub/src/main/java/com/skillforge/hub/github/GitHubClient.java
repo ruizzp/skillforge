@@ -352,7 +352,7 @@ public class GitHubClient {
     }
 
     private static final List<String> QUEST_STATUS_LABELS =
-        List.of("in-progress", "pending-review", "completed");
+        List.of("in-progress", "pending-review", "review-pending", "completed");
 
     public void setQuestStatus(int issueNumber, String status) throws Exception {
         requireToken("setQuestStatus");
@@ -365,6 +365,22 @@ public class GitHubClient {
             }
         }
         addLabel(issueNumber, status);
+    }
+
+    public void setRevisionCount(int issueNumber, int count) throws Exception {
+        requireToken("setRevisionCount");
+        JsonNode issue = get("%s/repos/%s/%s/issues/%d".formatted(API, owner, repo, issueNumber));
+        for (JsonNode label : issue.path("labels")) {
+            String name = label.path("name").asText();
+            if (name.startsWith("revision-count:")) {
+                try {
+                    delete("%s/repos/%s/%s/issues/%d/labels/%s"
+                        .formatted(API, owner, repo, issueNumber, name.replace(":", "%3A")));
+                } catch (Exception ignored) {}
+                break;
+            }
+        }
+        addLabel(issueNumber, "revision-count:" + count);
     }
 
     private void updateXp(int issueNumber, int delta) throws Exception {
@@ -457,6 +473,7 @@ public class GitHubClient {
             int xpReward = 100;
             List<String> solvers   = new ArrayList<>();
             String assignedTo = null;
+            int revisionCount = 0;
 
             for (JsonNode label : issue.path("labels")) {
                 String name = label.path("name").asText();
@@ -465,8 +482,12 @@ public class GitHubClient {
                 if (name.startsWith("xp:")) {
                     try { xpReward = Integer.parseInt(name.substring(3)); } catch (NumberFormatException ignored) {}
                 }
-                if (name.startsWith("solved-by:"))   solvers.add(name.substring("solved-by:".length()));
-                if (name.startsWith("assigned-to:")) assignedTo = name.substring("assigned-to:".length());
+                if (name.startsWith("solved-by:"))     solvers.add(name.substring("solved-by:".length()));
+                if (name.startsWith("assigned-to:"))   assignedTo = name.substring("assigned-to:".length());
+                if (name.startsWith("revision-count:")) {
+                    try { revisionCount = Integer.parseInt(name.substring("revision-count:".length())); }
+                    catch (NumberFormatException ignored) {}
+                }
             }
 
             String assignee = Optional.ofNullable(issue.get("assignee"))
@@ -483,7 +504,7 @@ public class GitHubClient {
             }
 
             return Optional.of(new Quest(id, title, body, rarity, state,
-                    requiredSkills, xpReward, assignee, url, number, solvers, assignedTo));
+                    requiredSkills, xpReward, assignee, url, number, solvers, assignedTo, revisionCount));
         } catch (Exception e) {
             return Optional.empty();
         }

@@ -9,6 +9,7 @@ import com.skillforge.hub.web.HubDashboardController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -24,16 +25,22 @@ public class SolutionConsumer {
     private final QuestBoardService questBoard;
     private final GitHubClient github;
     private final HubDashboardController dashboard;
+    private final RabbitTemplate rabbit;
 
-    @Value("${skillforge.skill-validation.confidence-threshold:0.75}")
-    private double confidenceThreshold;
+    @Value("${guild.amqp.exchange}")
+    private String exchange;
+
+    @Value("${guild.reviewer.max-revisions:3}")
+    private int maxRevisions;
 
     public SolutionConsumer(HeroRegistryService registry, QuestBoardService questBoard,
-                            GitHubClient github, HubDashboardController dashboard) {
-        this.registry = registry;
+                            GitHubClient github, HubDashboardController dashboard,
+                            RabbitTemplate rabbit) {
+        this.registry  = registry;
         this.questBoard = questBoard;
-        this.github = github;
+        this.github    = github;
         this.dashboard = dashboard;
+        this.rabbit    = rabbit;
     }
 
     @RabbitListener(queues = AmqpConfig.SOLUTIONS_QUEUE)
@@ -58,21 +65,44 @@ public class SolutionConsumer {
                 .findFirst()
                 .ifPresent(quest -> {
                     try {
-                        github.setQuestStatus(quest.number(), "pending-review");
-                        github.addLabel(quest.number(), "solved-by:" + msg.heroId());
+                        // Mark as review-pending and route to hero-reviewer
+                        github.setQuestStatus(quest.number(), "review-pending");
+
+                        String primarySkill = quest.requiredSkills().isEmpty()
+                            ? "general"
+                            : normalizeSkill(quest.requiredSkills().get(0));
+                        String reviewRoutingKey = "review." + primarySkill;
+
+                        ReviewMessage reviewMsg = new ReviewMessage(
+                            quest.id(),
+                            quest.number(),
+                            quest.title(),
+                            quest.body(),
+                            msg.solution(),
+                            msg.heroId(),
+                            msg.heroName(),
+                            msg.confidence(),
+                            msg.model(),
+                            quest.revisionCount()
+                        );
+
+                        rabbit.convertAndSend(exchange, reviewRoutingKey, reviewMsg);
+                        log.info("Solução de {} encaminhada para revisão via routing key '{}'",
+                                msg.heroId(), reviewRoutingKey);
                     } catch (Exception e) {
-                        log.warn("Não foi possível atualizar estado da quest {}: {}", msg.questId(), e.getMessage());
+                        log.warn("Não foi possível encaminhar solução da quest {} para revisão: {}",
+                                msg.questId(), e.getMessage());
                     }
                 });
-        }
-
-        if (msg.confidence() >= confidenceThreshold) {
-            autoValidateSkills(msg);
         }
     }
 
     public void triggerValidation(SolutionMessage msg) {
         autoValidateSkills(msg);
+    }
+
+    private static String normalizeSkill(String skill) {
+        return skill.toLowerCase().replace(' ', '-').trim();
     }
 
     private void autoValidateSkills(SolutionMessage msg) {

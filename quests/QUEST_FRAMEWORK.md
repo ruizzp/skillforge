@@ -194,3 +194,27 @@ Não há flag, banco ou cache — o guardrail relê os arquivos a cada execuçã
 - As escalas e regras de negócio
 - A fonte de dados fictícios
 - O nível de contexto clínico/técnico necessário
+
+---
+
+## Definition of Done
+
+Todo quest deve incluir uma seção `## Definition of Done` no corpo da issue com critérios verificáveis:
+
+```markdown
+## Definition of Done
+
+- [ ] Critério 1 objetivamente verificável
+- [ ] Critério 2 com resultado esperado claro
+- [ ] Critério 3 mensurável
+```
+
+O `hero-reviewer` extrai esta seção e avalia cada critério contra a solução submetida.
+
+**Aliases aceitos pelo parser do `hero-reviewer`:**
+- `## Definition of Done`
+- `## DoD`
+- `## Critérios de Aceite`
+
+**Consequência de não ter DoD:** a solução é aprovada automaticamente com score 0.5 e uma ressalva no log.
+Quests sem DoD são válidas tecnicamente, mas perdem a validação automatizada de qualidade.

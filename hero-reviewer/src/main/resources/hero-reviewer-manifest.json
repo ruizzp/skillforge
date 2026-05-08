@@ -1,0 +1,9 @@
+{
+  "heroId": "hero-reviewer",
+  "heroName": "Hero Reviewer",
+  "heroClass": "Quality Guardian",
+  "skills": ["quest-review", "solution-evaluation", "dod-validation", "feedback-generation"],
+  "level": 1,
+  "specialty": "Avalia soluções contra o DoD da quest e gera feedback acionável para revisão",
+  "githubLogin": "hero-reviewer-bot"
+}

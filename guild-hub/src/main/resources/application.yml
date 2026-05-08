@@ -17,6 +17,8 @@ guild:
   amqp:
     exchange: ${AMQP_EXCHANGE:skillforge}
     queue: ${AMQP_QUEUE:skillforge.problems}
+  reviewer:
+    max-revisions: ${MAX_REVISIONS:3}
 
 skillforge:
   skill-validation:

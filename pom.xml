@@ -17,6 +17,7 @@
         <module>hero-template</module>
         <module>guild-quest</module>
         <module>hero-marketing</module>
+        <module>hero-reviewer</module>
     </modules>
 
     <properties>

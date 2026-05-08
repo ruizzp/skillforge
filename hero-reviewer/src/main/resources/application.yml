@@ -1,0 +1,35 @@
+server:
+  port: 8093
+
+spring:
+  application:
+    name: hero-reviewer
+  rabbitmq:
+    addresses: ${AMQP_URL}
+    ssl:
+      enabled: ${AMQP_SSL_ENABLED:false}
+
+guild:
+  amqp:
+    exchange: ${AMQP_EXCHANGE:skillforge}
+    heartbeat-interval-ms: 60000
+    heartbeat-initial-delay-ms: 5000
+
+skillforge:
+  hero:
+    id: hero-reviewer
+    name: Hero Reviewer
+    skills: quest-review,solution-evaluation,dod-validation,feedback-generation
+  reviewer:
+    max-revisions: ${MAX_REVISIONS:3}
+    approval-threshold: ${APPROVAL_THRESHOLD:0.70}
+
+ollama:
+  base-url: ${OLLAMA_URL:http://localhost:11434}
+  model: ${OLLAMA_MODEL:llama3.2}
+
+logging:
+  level:
+    com.skillforge: INFO
+  pattern:
+    console: "%d{HH:mm:ss} %highlight(%-5level) %cyan(%-30logger{30}) %msg%n"
