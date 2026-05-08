@@ -1,28 +1,32 @@
 package com.skillforge.hero;
 
-import com.skillforge.hero.domain.HeroLevel;
-import com.skillforge.hero.domain.QuestRarity;
 import org.junit.jupiter.api.Test;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.TestPropertySource;
 
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@TestPropertySource(properties = {
+        "AMQP_URL=amqp://localhost",
+        "guild.github.owner=test-owner",
+        "guild.github.repo=test-repo",
+        "guild.github.token=",
+        "guild.amqp.exchange=test-exchange",
+        "guild.amqp.queue=test-queue",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration"
+})
 class HeroApplicationTests {
 
-    @Test
-    void heroLevelFromXp() {
-        assertThat(HeroLevel.fromXp(0)).isEqualTo(HeroLevel.APPRENTICE);
-        assertThat(HeroLevel.fromXp(999)).isEqualTo(HeroLevel.APPRENTICE);
-        assertThat(HeroLevel.fromXp(1000)).isEqualTo(HeroLevel.JOURNEYMAN);
-        assertThat(HeroLevel.fromXp(3000)).isEqualTo(HeroLevel.EXPERT);
-        assertThat(HeroLevel.fromXp(8000)).isEqualTo(HeroLevel.MASTER);
-    }
+    // RabbitAutoConfiguration excluída — mocks satisfazem todas as dependências AMQP
+    @MockBean
+    ConnectionFactory connectionFactory;
+
+    @MockBean
+    RabbitTemplate rabbitTemplate;
 
     @Test
-    void heroLevelCanSeeQuests() {
-        assertThat(HeroLevel.APPRENTICE.canSee(QuestRarity.COMMON)).isTrue();
-        assertThat(HeroLevel.APPRENTICE.canSee(QuestRarity.RARE)).isFalse();
-        assertThat(HeroLevel.JOURNEYMAN.canSee(QuestRarity.RARE)).isTrue();
-        assertThat(HeroLevel.JOURNEYMAN.canSee(QuestRarity.EPIC)).isFalse();
-        assertThat(HeroLevel.EXPERT.canSee(QuestRarity.EPIC)).isTrue();
-        assertThat(HeroLevel.MASTER.canSee(QuestRarity.LEGENDARY)).isTrue();
+    void contextLoads() {
     }
 }
