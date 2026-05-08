@@ -12,9 +12,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AmqpConfig {
 
-    public static final String SOLUTIONS_QUEUE      = "skillforge.solutions";
-    public static final String HEARTBEATS_QUEUE     = "skillforge.heartbeats";
-    public static final String REVIEW_RESULTS_QUEUE = "skillforge.review-results";
+    public static final String SOLUTIONS_QUEUE           = "skillforge.solutions";
+    public static final String HEARTBEATS_QUEUE          = "skillforge.heartbeats";
+    public static final String REVIEW_RESULTS_QUEUE      = "skillforge.review-results";
+    public static final String HERO_REGISTRATION_QUEUE   = "skillforge.hero-registration";
 
     @Value("${guild.amqp.exchange}")
     private String exchangeName;
@@ -67,6 +68,16 @@ public class AmqpConfig {
     @Bean
     public Binding reviewResultsBinding(Queue reviewResultsQueue, TopicExchange skillforgeExchange) {
         return BindingBuilder.bind(reviewResultsQueue).to(skillforgeExchange).with("review-result.#");
+    }
+
+    @Bean
+    public Queue heroRegistrationQueue() {
+        return new Queue(HERO_REGISTRATION_QUEUE, true);
+    }
+
+    @Bean
+    public Binding heroRegistrationBinding(Queue heroRegistrationQueue, TopicExchange skillforgeExchange) {
+        return BindingBuilder.bind(heroRegistrationQueue).to(skillforgeExchange).with("hero.register");
     }
 
     @Bean

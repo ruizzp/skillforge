@@ -19,7 +19,10 @@ skillforge:
   hero:
     id: hero-reviewer
     name: Hero Reviewer
+    class: Quality Guardian
     skills: quest-review,solution-evaluation,dod-validation,feedback-generation
+    specialty: Avalia soluções contra o DoD da quest e gera feedback acionável para revisão
+    endpoint: http://localhost:8093
   reviewer:
     max-revisions: ${MAX_REVISIONS:3}
     approval-threshold: ${APPROVAL_THRESHOLD:0.70}
