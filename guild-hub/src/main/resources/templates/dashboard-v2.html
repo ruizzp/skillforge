@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guild Hub — SkillForge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+    <style>
+        /* ── Design tokens ──────────────────────────────────────────────────── */
+        :root {
+            --page:          #f1f5f9;
+            --s1:            #ffffff;
+            --s2:            #f8fafc;
+            --s3:            #f1f5f9;
+            --border:        #e2e8f0;
+            --border-strong: #cbd5e1;
+            --text:          #0f172a;
+            --text-2:        #475569;
+            --text-3:        #94a3b8;
+
+            --blue:          #2563eb;
+            --blue-soft:     #eff6ff;
+            --blue-mid:      #bfdbfe;
+            --green:         #059669;
+            --green-soft:    #ecfdf5;
+            --green-mid:     #a7f3d0;
+            --amber:         #d97706;
+            --amber-soft:    #fffbeb;
+            --amber-mid:     #fde68a;
+            --red:           #dc2626;
+            --red-soft:      #fef2f2;
+            --red-mid:       #fecaca;
+            --purple:        #7c3aed;
+            --purple-soft:   #f5f3ff;
+            --purple-mid:    #ddd6fe;
+
+            --ui:   'Inter', system-ui, -apple-system, sans-serif;
+            --mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+            --shadow-xs: 0 1px 2px rgba(0,0,0,.05);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+            --r:    8px;
+            --r-sm: 5px;
+            --r-lg: 12px;
+        }
+
+        /* ── Reset ──────────────────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--page); color: var(--text); font-family: var(--ui); font-size: 14px; line-height: 1.6; min-height: 100vh; }
+        a { color: var(--blue); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button { font-family: var(--ui); cursor: pointer; }
+
+        /* ── Topbar ─────────────────────────────────────────────────────────── */
+        .topbar {
+            background: var(--s1); border-bottom: 1px solid var(--border);
+            padding: 0 28px; height: 56px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: var(--shadow-xs);
+        }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .brand { font-size: 17px; font-weight: 700; letter-spacing: -.02em; color: var(--text); }
+        .brand em { font-style: normal; color: var(--blue); }
+        .hub-pill {
+            background: var(--blue); color: #fff;
+            font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+            padding: 3px 10px; border-radius: 99px;
+        }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+        .sse-chip {
+            display: flex; align-items: center; gap: 6px;
+            background: var(--s2); border: 1px solid var(--border); border-radius: 99px;
+            padding: 4px 12px; font-size: 12px; color: var(--text-3);
+        }
+        .sse-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); transition: background .3s; }
+        .sse-dot.live { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+        .sse-dot.err  { background: var(--red); }
+
+        .refresh-last { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+        .refresh-select {
+            background: var(--s2); border: 1px solid var(--border); border-radius: var(--r-sm);
+            padding: 5px 28px 5px 10px; font-size: 12px; color: var(--text-2); font-family: var(--ui);
+            cursor: pointer; outline: none; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 8px center;
+        }
+        .refresh-select:focus { border-color: var(--blue); }
+
+        .btn-topbar {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 6px 14px; border-radius: var(--r-sm); font-size: 13px; font-weight: 500;
+            border: 1px solid var(--border); background: transparent; color: var(--text-2);
+            transition: all .15s;
+        }
+        .btn-topbar:hover { border-color: var(--border-strong); color: var(--text); background: var(--s2); }
+        .btn-topbar:disabled { opacity: .5; cursor: default; }
+
+        /* ── Workspace ──────────────────────────────────────────────────────── */
+        .workspace { max-width: 1280px; margin: 0 auto; padding: 28px 28px 56px; }
+        .mb { margin-bottom: 20px; }
+
+        /* ── Cards ──────────────────────────────────────────────────────────── */
+        .card { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); }
+        .card-hd {
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+        }
+        .card-label { font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--text-3); }
+        .card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-top: 2px; }
+        .card-sub   { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+        .card-body  { padding: 20px; }
+
+        /* ── KPI strip ──────────────────────────────────────────────────────── */
+        .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+        @media (max-width:900px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width:520px) { .kpi-grid { grid-template-columns: 1fr; } }
+
+        .kpi-card { padding: 20px 24px; }
+        .kpi-label { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; }
+        .kpi-value { font-size: 38px; font-weight: 700; font-family: var(--mono); color: var(--text); line-height: 1; letter-spacing: -.03em; }
+        .kpi-sub   { font-size: 12px; color: var(--text-3); margin-top: 8px; }
+
+        /* ── Action alert (pending reviews) ─────────────────────────────────── */
+        .action-alert {
+            border-left: 4px solid var(--amber);
+            background: linear-gradient(to right, var(--amber-soft) 0%, var(--s1) 50%);
+        }
+        .action-alert .card-hd { border-color: var(--amber-mid); }
+        .alert-badge {
+            min-width: 22px; height: 22px;
+            background: var(--amber); color: #fff;
+            font-size: 11px; font-weight: 700; border-radius: 99px; padding: 0 7px;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+
+        /* ── Pending rows ───────────────────────────────────────────────────── */
+        .pending-row {
+            display: flex; align-items: center; gap: 16px;
+            padding: 14px 20px; border-bottom: 1px solid var(--border);
+            transition: background .1s;
+        }
+        .pending-row:last-child { border-bottom: none; }
+        .pending-row:hover { background: var(--s2); }
+        .pending-info { flex: 1; min-width: 0; }
+        .pending-title { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pending-title a { color: var(--text); }
+        .pending-title a:hover { color: var(--blue); text-decoration: none; }
+        .pending-meta { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+        .pending-hero { color: var(--green); font-weight: 500; }
+        .pending-xp   { color: var(--amber); font-weight: 500; }
+        .pending-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+        .pending-quest-header {
+            padding: 10px 20px 6px; font-size: 13px; font-weight: 600; color: var(--text-2);
+            background: var(--s2); border-bottom: 1px solid var(--border);
+        }
+        .pending-multi {
+            display: inline-flex; align-items: center;
+            background: var(--amber-soft); border: 1px solid var(--amber-mid);
+            color: var(--amber); border-radius: 99px; padding: 1px 8px;
+            font-size: 11px; font-weight: 500; margin-left: 8px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 5px 12px; font-size: 12px; font-weight: 500;
+            border-radius: var(--r-sm); border: 1px solid; transition: all .15s; white-space: nowrap;
+            cursor: pointer; font-family: var(--ui);
+        }
+        .btn:disabled { opacity: .45; cursor: default; }
+        .btn-approve  { border-color: var(--green);  color: var(--green);  background: transparent; }
+        .btn-approve:hover:not(:disabled)  { background: var(--green);  color: #fff; }
+        .btn-approve.approved              { background: var(--green);  color: #fff; }
+        .btn-approve.err                   { border-color: var(--red);  color: var(--red); }
+        .btn-dispatch { border-color: var(--blue);   color: var(--blue);  background: transparent; }
+        .btn-dispatch:hover:not(:disabled) { background: var(--blue);   color: #fff; }
+        .btn-dispatch.sent { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+        .btn-ghost    { border-color: var(--border); color: var(--text-3); background: transparent; }
+        .btn-ghost:hover:not(:disabled) { border-color: var(--border-strong); color: var(--text-2); }
+        .btn-ghost.sent { border-color: var(--amber); color: var(--amber); }
+
+        .solutions-toggle {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 4px 10px; font-size: 12px;
+            background: transparent; border: 1px solid var(--border);
+            border-radius: var(--r-sm); color: var(--text-3);
+            cursor: pointer; font-family: var(--ui); transition: all .15s; white-space: nowrap;
+        }
+        .solutions-toggle:hover { border-color: var(--blue); color: var(--blue); }
+
+        /* Solutions panel */
+        .solutions-panel { display: none; border-top: 1px solid var(--border); }
+        .solutions-panel.open { display: block; }
+        .solution-comment { padding: 14px 20px; border-bottom: 1px solid var(--border); }
+        .solution-comment:last-child { border-bottom: none; }
+        .solution-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .solution-author { font-weight: 600; color: var(--blue); font-size: 13px; }
+        .solution-ts     { font-size: 12px; color: var(--text-3); }
+        .solution-seq    { font-size: 11px; background: var(--s3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 1px 7px; color: var(--text-3); }
+        .solution-body {
+            font-family: var(--mono); font-size: 12px; color: var(--text-2);
+            white-space: pre-wrap; max-height: 200px; overflow-y: auto;
+            background: var(--s2); border: 1px solid var(--border);
+            border-radius: var(--r-sm); padding: 12px; line-height: 1.5;
+        }
+        .solutions-loading { font-size: 12px; color: var(--text-3); padding: 12px 20px; }
+        .approve-inline { font-size: 11px; padding: 2px 8px; margin-left: auto; }
+
+        /* ── Main layout ────────────────────────────────────────────────────── */
+        .grid-main { display: grid; grid-template-columns: 1fr 360px; gap: 20px; align-items: start; }
+        @media (max-width:1100px) { .grid-main { grid-template-columns: 1fr; } }
+
+        /* ── Quest routing ──────────────────────────────────────────────────── */
+        .route-head {
+            display: grid; grid-template-columns: 1fr 160px 1fr 110px; gap: 12px;
+            align-items: center; padding: 9px 20px;
+            background: var(--s2); border-bottom: 1px solid var(--border);
+            font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: .06em; text-transform: uppercase;
+        }
+        .route-row {
+            display: grid; grid-template-columns: 1fr 160px 1fr 110px; gap: 12px;
+            align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border);
+            font-size: 13px; transition: background .1s;
+        }
+        .route-row:last-child { border-bottom: none; }
+        .route-row:hover { background: var(--s2); }
+        .route-qtitle { font-weight: 500; }
+        .route-qtitle a { color: var(--text); }
+        .route-qtitle a:hover { color: var(--blue); text-decoration: none; }
+        .route-qmeta  { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+        .route-key {
+            display: block; font-family: var(--mono); font-size: 11px;
+            color: var(--blue); background: var(--blue-soft); border: 1px solid var(--blue-mid);
+            border-radius: var(--r-sm); padding: 3px 8px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .route-hero { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .route-hero-none { color: var(--text-3); font-size: 12px; font-style: italic; }
+        .no-routes { color: var(--text-3); font-size: 13px; text-align: center; padding: 28px 0; }
+
+        /* ── Leaderboard ────────────────────────────────────────────────────── */
+        .rank-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 20px; border-bottom: 1px solid var(--border);
+            cursor: pointer; transition: background .1s;
+        }
+        .rank-row:last-child { border-bottom: none; }
+        .rank-row:hover { background: var(--s2); }
+        .rank-num { width: 28px; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-3); flex-shrink: 0; font-family: var(--mono); }
+        .rank-num.gold   { color: #b45309; }
+        .rank-num.silver { color: #64748b; }
+        .rank-num.bronze { color: #92400e; }
+        .avatar    { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border); object-fit: cover; flex-shrink: 0; }
+        .avatar-ph {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--blue-soft); border: 2px solid var(--blue-mid);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 600; color: var(--blue); flex-shrink: 0;
+        }
+        .hero-info  { flex: 1; min-width: 0; }
+        .hero-name  { font-size: 14px; font-weight: 500; }
+        .hero-class { font-size: 12px; color: var(--text-3); }
+        .hero-xp    { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--amber); white-space: nowrap; }
+        .level-tag  { font-size: 10px; font-weight: 600; letter-spacing: .04em; border-radius: 99px; padding: 3px 10px; white-space: nowrap; border: 1px solid; }
+        .level-apprentice  { background: var(--s3);         color: var(--text-3);  border-color: var(--border); }
+        .level-journeyman  { background: var(--blue-soft);  color: var(--blue);    border-color: var(--blue-mid); }
+        .level-expert      { background: var(--purple-soft);color: var(--purple);  border-color: var(--purple-mid); }
+        .level-master      { background: var(--amber-soft); color: var(--amber);   border-color: var(--amber-mid); }
+        .level-grandmaster { background: #fff1f2;           color: #be123c;        border-color: #fecdd3; }
+        .presence-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border-strong); flex-shrink: 0; transition: background .3s, box-shadow .3s; }
+        .presence-dot.online { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+
+        /* Skill drawer */
+        .skill-drawer { display: none; padding: 12px 20px 16px 76px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; align-items: flex-start; background: var(--s2); }
+        .skill-drawer.open { display: flex; }
+        .skill-entry { display: inline-flex; align-items: center; gap: 6px; }
+        .skill-pill-sm { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--s1); border: 1px solid var(--border); color: var(--text-2); }
+        .skill-pill-sm.validated { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+        .val-check { font-size: 12px; color: var(--green); }
+        .validate-btn { font-size: 11px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--blue); background: transparent; color: var(--blue); cursor: pointer; font-family: var(--ui); transition: all .15s; }
+        .validate-btn:hover:not(:disabled) { background: var(--blue); color: #fff; }
+        .validate-btn:disabled { opacity: .5; cursor: default; }
+        .validate-btn.done { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+        .validate-btn.err  { border-color: var(--red); color: var(--red); }
+        .reset-btn { font-size: 11px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--text-3); cursor: pointer; font-family: var(--ui); transition: all .15s; }
+        .reset-btn:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+        .reset-btn:disabled { opacity: .4; cursor: default; }
+
+        .activity-section { width: 100%; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 4px; }
+        .activity-header  { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+        .activity-loading, .activity-empty { font-size: 12px; color: var(--text-3); }
+        .activity-entry { display: grid; grid-template-columns: 80px 1fr 60px 120px; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+        .activity-entry:last-child { border-bottom: none; }
+        .activity-qid   { font-family: var(--mono); font-size: 11px; color: var(--blue); }
+        .activity-qtitle { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .activity-xp    { color: var(--amber); text-align: right; font-weight: 600; font-family: var(--mono); }
+        .activity-conf  { color: var(--text-3); font-size: 11px; text-align: right; }
+
+        /* ── Skill distribution ─────────────────────────────────────────────── */
+        .skill-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+        .skill-pill  { display: inline-flex; align-items: center; gap: 6px; background: var(--s2); border: 1px solid var(--border); border-radius: 99px; padding: 4px 12px; font-size: 12px; color: var(--text-2); }
+        .skill-count { background: var(--blue-soft); color: var(--blue); border-radius: 99px; font-size: 10px; font-weight: 700; padding: 0 6px; min-width: 18px; text-align: center; }
+
+        .rarity-common    { color: var(--text-2); }
+        .rarity-rare      { color: var(--blue); }
+        .rarity-epic      { color: var(--purple); }
+        .rarity-legendary { color: var(--amber); }
+        .rarity-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .rarity-row:last-child { border-bottom: none; }
+        .rarity-val { font-family: var(--mono); font-weight: 600; }
+
+        /* ── Event feed ─────────────────────────────────────────────────────── */
+        .event-feed { max-height: 340px; overflow-y: auto; }
+        .event-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 12px; }
+        .event-item:last-child { border-bottom: none; }
+        .event-time { font-family: var(--mono); font-size: 11px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; white-space: nowrap; }
+        .ev-badge { flex-shrink: 0; font-size: 9px; font-weight: 700; letter-spacing: .06em; padding: 2px 6px; border-radius: 99px; text-transform: uppercase; }
+        .ev-hub      { background: var(--s3);          color: var(--text-3); }
+        .ev-online   { background: var(--green-soft);  color: var(--green);  }
+        .ev-offline  { background: var(--s3);          color: var(--text-3); }
+        .ev-join     { background: var(--blue-soft);   color: var(--blue);   }
+        .ev-quest    { background: var(--purple-soft); color: var(--purple); }
+        .ev-solution { background: var(--amber-soft);  color: var(--amber);  }
+        .ev-done     { background: var(--green-soft);  color: var(--green);  }
+        .ev-skill    { background: var(--green-soft);  color: var(--green);  }
+        .ev-fork     { background: #fdf4ff;            color: #a21caf;       }
+        .ev-reset    { background: var(--red-soft);    color: var(--red);    }
+        .ev-route    { background: var(--blue-soft);   color: var(--blue);   }
+        .ev-default  { background: var(--s3);          color: var(--text-2); }
+        .event-msg { color: var(--text-2); flex: 1; line-height: 1.4; }
+        .event-empty { color: var(--text-3); font-size: 12px; padding: 24px; text-align: center; }
+
+        /* ── API reference ──────────────────────────────────────────────────── */
+        details.api-ref summary { cursor: pointer; user-select: none; list-style: none; }
+        details.api-ref summary::-webkit-details-marker { display: none; }
+        details.api-ref summary .summary-chevron { font-size: 12px; color: var(--text-3); transition: transform .2s; }
+        details.api-ref[open] summary .summary-chevron { transform: rotate(180deg); }
+        details.api-ref .card-hd { border-bottom: none; }
+        details.api-ref[open] .card-hd { border-bottom: 1px solid var(--border); }
+        .api-grid { display: grid; gap: 8px; }
+        .api-item { font-size: 13px; color: var(--text-2); }
+        .api-item code { font-family: var(--mono); font-size: 12px; background: var(--s2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 2px 7px; color: var(--green); }
+
+        /* ── Empty state ────────────────────────────────────────────────────── */
+        .empty-state { color: var(--text-3); font-size: 13px; text-align: center; padding: 32px 20px; line-height: 1.8; }
+        .empty-state code { font-family: var(--mono); font-size: 12px; background: var(--s2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; color: var(--blue); }
+    </style>
+</head>
+<body>
+
+<!-- ── Topbar ─────────────────────────────────────────────────────────────── -->
+<header class="topbar">
+    <div class="topbar-left">
+        <span class="brand">Skill<em>Forge</em></span>
+        <span class="hub-pill">Guild Hub</span>
+    </div>
+    <div class="topbar-right">
+        <div class="sse-chip">
+            <span class="sse-dot" id="sse-dot"></span>
+            <span id="sse-status">conectando...</span>
+        </div>
+        <span class="refresh-last" id="refresh-last">—</span>
+        <select class="refresh-select" id="refresh-interval" onchange="setAutoRefresh(this.value)">
+            <option value="0">manual</option>
+            <option value="30">30 s</option>
+            <option value="60" selected>1 min</option>
+            <option value="300">5 min</option>
+        </select>
+        <button class="btn-topbar" id="refresh-btn" onclick="doRefresh()">↺ Atualizar</button>
+    </div>
+</header>
+
+<!-- ── Workspace ──────────────────────────────────────────────────────────── -->
+<main class="workspace">
+
+    <!-- Action zone: pending reviews -->
+    <div class="card action-alert mb" id="pending-review-section" style="display:none;">
+        <div class="card-hd">
+            <div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="card-label" style="color:var(--amber);">Ação Requerida</span>
+                    <span class="alert-badge" id="pending-count">0</span>
+                </div>
+                <div class="card-title">Soluções Aguardando Aprovação</div>
+            </div>
+            <span style="font-size:12px;color:var(--text-3);margin-top:4px;">Soluções recebidas · revisão humana necessária</span>
+        </div>
+        <div id="pending-review-list"></div>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="kpi-grid mb">
+        <div class="card kpi-card">
+            <div class="kpi-label">Heroes Registrados</div>
+            <div class="kpi-value" id="stat-heroCount" th:text="${heroCount}">0</div>
+            <div class="kpi-sub">membros da guilda</div>
+        </div>
+        <div class="card kpi-card">
+            <div class="kpi-label">XP Total da Guilda</div>
+            <div class="kpi-value" id="stat-totalXp" th:text="${totalXp}">0</div>
+            <div class="kpi-sub">experiência acumulada</div>
+        </div>
+        <div class="card kpi-card">
+            <div class="kpi-label">Quests Abertas</div>
+            <div class="kpi-value" id="stat-openQuests" th:text="${openQuests}">0</div>
+            <div class="kpi-sub">disponíveis agora</div>
+        </div>
+        <div class="card kpi-card">
+            <div class="kpi-label">Quests Concluídas</div>
+            <div class="kpi-value" id="stat-completedQuests" th:text="${completedQuests}">0</div>
+            <div class="kpi-sub">pela guilda</div>
+        </div>
+    </div>
+
+    <!-- Main 2-col grid -->
+    <div class="grid-main">
+
+        <!-- Left column: routing + leaderboard -->
+        <div>
+
+            <!-- Quest routing -->
+            <div class="card mb">
+                <div class="card-hd">
+                    <div>
+                        <div class="card-label">Pipeline de Quests</div>
+                        <div class="card-title">Roteamento</div>
+                        <div class="card-sub">Quests abertas → hero eleito por compatibilidade de skill</div>
+                    </div>
+                </div>
+                <div id="routing-table">
+                    <div class="route-head">
+                        <span>Quest</span><span>Routing Key</span><span>Hero Eleito</span><span></span>
+                    </div>
+                    <div class="no-routes" id="routing-empty">Carregando roteamento...</div>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="card">
+                <div class="card-hd">
+                    <div>
+                        <div class="card-label">Classificação</div>
+                        <div class="card-title">Leaderboard</div>
+                        <div class="card-sub">Clique em um hero para ver skills e histórico de quests</div>
+                    </div>
+                </div>
+
+                <div th:if="${leaderboard.isEmpty()}" class="empty-state">
+                    Nenhum hero registrado ainda.<br>
+                    Abra uma issue com label <code>hero</code> para se registrar.
+                </div>
+
+                <th:block th:each="entry : ${leaderboard}">
+                <div class="rank-row" th:attr="data-hero-id=${entry.member.heroId}">
+                    <div class="rank-num"
+                         th:classappend="${entry.rank == 1 ? ' gold' : (entry.rank == 2 ? ' silver' : (entry.rank == 3 ? ' bronze' : ''))}"
+                         th:text="${entry.rank}">1</div>
+                    <img th:if="${entry.member.avatarUrl != null and !entry.member.avatarUrl.isEmpty()}"
+                         th:src="${entry.member.avatarUrl}" class="avatar" alt="">
+                    <div th:unless="${entry.member.avatarUrl != null and !entry.member.avatarUrl.isEmpty()}"
+                         class="avatar-ph" th:text="${entry.member.heroName.substring(0,1)}">H</div>
+                    <div class="hero-info">
+                        <div class="hero-name"  th:text="${entry.member.heroName}">Hero</div>
+                        <div class="hero-class" th:text="${entry.member.heroClass}">Class</div>
+                    </div>
+                    <span class="level-tag"
+                          th:classappend="${'level-' + entry.heroLevel.name().toLowerCase()}"
+                          th:text="${entry.heroLevel.name()}">APPRENTICE</span>
+                    <div class="hero-xp" th:text="${entry.member.xp} + ' XP'">0 XP</div>
+                    <span class="presence-dot"
+                          th:classappend="${onlineHeroes.contains(entry.member.heroId) ? ' online' : ''}"
+                          th:title="${onlineHeroes.contains(entry.member.heroId) ? 'Online' : 'Offline'}"></span>
+                </div>
+                <div class="skill-drawer" th:id="'drawer-' + ${entry.member.heroId}">
+                    <th:block th:each="skill : ${entry.member.skills}">
+                    <div class="skill-entry">
+                        <span class="skill-pill-sm"
+                              th:classappend="${entry.member.validatedSkills.contains(skill) ? ' validated' : ''}"
+                              th:text="${skill}">skill</span>
+                        <span th:if="${entry.member.validatedSkills.contains(skill)}" class="val-check">✓</span>
+                        <button th:if="${entry.member.validatedSkills.contains(skill)}"
+                                class="reset-btn"
+                                th:attr="data-hero-id=${entry.member.heroId},data-skill=${skill}"
+                                onclick="resetSkill(event, this)">×</button>
+                        <button th:unless="${entry.member.validatedSkills.contains(skill)}"
+                                class="validate-btn"
+                                th:attr="data-hero-id=${entry.member.heroId},data-skill=${skill}"
+                                onclick="validateSkill(event, this)">validar</button>
+                    </div>
+                    </th:block>
+                    <div class="activity-section" th:id="'activity-' + ${entry.member.heroId}">
+                        <div class="activity-header">Histórico de Quests</div>
+                        <div class="activity-loading">carregando...</div>
+                    </div>
+                </div>
+                </th:block>
+            </div>
+        </div>
+
+        <!-- Right sidebar: skill map + events -->
+        <div>
+
+            <!-- Guild capacity -->
+            <div class="card mb">
+                <div class="card-hd">
+                    <div>
+                        <div class="card-label">Mapa de Skills</div>
+                        <div class="card-title">Capacidade da Guilda</div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div th:if="${skillDist.isEmpty()}" class="empty-state" style="padding:8px 0;">Nenhuma skill declarada.</div>
+                    <div class="skill-pills">
+                        <th:block th:each="entry : ${skillDist}">
+                        <span class="skill-pill">
+                            <span th:text="${entry.key}">skill</span>
+                            <span class="skill-count" th:text="${entry.value}">1</span>
+                        </span>
+                        </th:block>
+                    </div>
+                    <div th:if="${!questsByRarity.isEmpty()}" style="margin-top:20px;">
+                        <div class="card-label" style="margin-bottom:10px;">Quests por Raridade</div>
+                        <div th:each="entry : ${questsByRarity}" class="rarity-row">
+                            <span th:text="${entry.key.name()}"
+                                  th:classappend="${'rarity-' + entry.key.name().toLowerCase()}">COMMON</span>
+                            <span class="rarity-val" th:text="${entry.value}">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live events -->
+            <div class="card">
+                <div class="card-hd">
+                    <div>
+                        <div class="card-label">Atividade em Tempo Real</div>
+                        <div class="card-title">Eventos</div>
+                    </div>
+                </div>
+                <div class="event-feed" id="event-feed">
+                    <div class="event-empty">Aguardando eventos...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API reference (collapsible) -->
+    <details class="card api-ref" style="margin-top:20px;">
+        <summary class="card-hd">
+            <div>
+                <div class="card-label">Referência</div>
+                <div class="card-title">API do Hub</div>
+            </div>
+            <span class="summary-chevron">▾</span>
+        </summary>
+        <div class="card-body">
+            <div class="api-grid">
+                <div class="api-item"><code>GET /api/heroes</code> — lista todos os heróis registrados</div>
+                <div class="api-item"><code>GET /api/heroes/{heroId}</code> — dados de um herói específico</div>
+                <div class="api-item"><code>GET /api/leaderboard</code> — ranking por XP</div>
+                <div class="api-item"><code>GET /api/quests?rarity=RARE&amp;status=open</code> — quests filtradas</div>
+                <div class="api-item"><code>POST /api/quests</code> — cria nova quest (requer GITHUB_TOKEN)</div>
+                <div class="api-item"><code>GET /api/stats</code> — estatísticas completas da guilda</div>
+                <div class="api-item"><code>GET /api/health</code> — health check</div>
+                <div class="api-item"><code>GET /events</code> — SSE stream de eventos</div>
+            </div>
+        </div>
+    </details>
+
+</main>
+
+<script>
+    // ── Auto-refresh ──────────────────────────────────────────────────────────
+    let refreshTimer = null;
+
+    async function doRefresh() {
+        const btn = document.getElementById('refresh-btn');
+        btn.textContent = '↺ Atualizando...';
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/refresh', { method: 'POST' });
+            if (res.ok) {
+                const d = await res.json();
+                document.getElementById('stat-heroCount').textContent = d.heroes;
+                document.getElementById('stat-totalXp').textContent   = d.totalXp;
+                const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                document.getElementById('refresh-last').textContent = 'sync ' + now;
+                setTimeout(() => location.reload(), 400);
+            }
+        } catch (e) {
+            btn.textContent = '↺ Erro';
+            btn.disabled = false;
+        }
+    }
+
+    function setAutoRefresh(seconds) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+        const s = parseInt(seconds, 10);
+        if (s > 0) refreshTimer = setInterval(doRefresh, s * 1000);
+    }
+
+    setAutoRefresh(document.getElementById('refresh-interval').value);
+
+    // ── Quest Routing ─────────────────────────────────────────────────────────
+    async function loadRoutingTable() {
+        try {
+            const res = await fetch('/api/routing');
+            if (!res.ok) return;
+            renderRoutingTable(await res.json());
+        } catch (e) {}
+    }
+
+    function renderRoutingTable(routes) {
+        const table = document.getElementById('routing-table');
+        const empty = document.getElementById('routing-empty');
+        table.querySelectorAll('.route-data-row').forEach(r => r.remove());
+
+        if (!routes || routes.length === 0) {
+            empty.textContent = 'Nenhuma quest aberta no momento.';
+            empty.style.display = 'block';
+            return;
+        }
+        empty.style.display = 'none';
+
+        routes.forEach(r => {
+            const row = document.createElement('div');
+            row.className = 'route-row route-data-row';
+            row.dataset.questId = r.questId;
+
+            const rarityColor = {
+                COMMON: 'var(--text-2)', RARE: 'var(--blue)',
+                EPIC: 'var(--purple)', LEGENDARY: 'var(--amber)'
+            };
+            const color    = rarityColor[r.rarity] || 'var(--text-2)';
+            const xpLabel  = r.xpReward > 0 ? `+${r.xpReward} XP · ` : '';
+            const heroCell = r.elected
+                ? `<div class="route-hero">
+                     <span class="presence-dot online"></span>
+                     <span style="font-weight:500">${r.elected.heroName}</span>
+                     ${r.elected.matchedSkills.map(s => `<span class="skill-pill-sm" style="border-radius:99px;font-size:11px;">${s}</span>`).join('')}
+                   </div>`
+                : `<span class="route-hero-none">— sem hero online</span>`;
+            const titleHtml = r.questUrl
+                ? `<div class="route-qtitle"><a href="${r.questUrl}" target="_blank" rel="noopener" style="color:${color}">${r.questTitle}</a></div>`
+                : `<div class="route-qtitle" style="color:${color}">${r.questTitle}</div>`;
+            const btnDisabled = !r.elected ? 'disabled' : '';
+            row.innerHTML = `
+                <div>
+                    ${titleHtml}
+                    <div class="route-qmeta">${xpLabel}${r.requiredSkills.join(', ')}</div>
+                </div>
+                <span class="route-key">${r.routingKey}</span>
+                <div>${heroCell}</div>
+                <div>
+                    <button class="btn btn-dispatch" ${btnDisabled}
+                        onclick="dispatchQuest('${r.questId}', this)">▶ Despachar</button>
+                </div>`;
+            table.appendChild(row);
+        });
+    }
+
+    async function dispatchQuest(questId, btn) {
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+        try {
+            const res = await fetch(`/api/routing/${encodeURIComponent(questId)}/dispatch`, { method: 'POST' });
+            const d = await res.json();
+            if (d.dispatched) {
+                btn.textContent = '✓ Enviado';
+                btn.classList.add('sent');
+            } else {
+                btn.textContent = 'Sem hero';
+                btn.disabled = false;
+            }
+        } catch (e) {
+            btn.textContent = 'Erro';
+            btn.disabled = false;
+        }
+    }
+
+    loadRoutingTable();
+    loadPendingReview();
+
+    // ── Pending Review ────────────────────────────────────────────────────────
+    async function loadPendingReview() {
+        try {
+            const res = await fetch('/api/quests?status=pending-review');
+            if (!res.ok) return;
+            renderPendingReview(await res.json());
+        } catch (e) {}
+    }
+
+    function renderPendingReview(quests) {
+        const section = document.getElementById('pending-review-section');
+        const list    = document.getElementById('pending-review-list');
+        list.innerHTML = '';
+        if (!quests || quests.length === 0) { section.style.display = 'none'; return; }
+        section.style.display = 'block';
+
+        const totalRows = quests.reduce((sum, q) => sum + (q.solvers || []).length, 0);
+        const badge = document.getElementById('pending-count');
+        if (badge) badge.textContent = totalRows;
+
+        quests.forEach(q => {
+            const titleHtml = q.url ? `<a href="${q.url}" target="_blank" rel="noopener">${q.title}</a>` : q.title;
+            const skills  = (q.requiredSkills || []).join(', ');
+            const solvers = q.solvers || [];
+
+            if (solvers.length > 1) {
+                const hdr = document.createElement('div');
+                hdr.className = 'pending-quest-header';
+                hdr.innerHTML = `${titleHtml} <span class="pending-multi">${solvers.length} soluções</span>`;
+                list.appendChild(hdr);
+            }
+
+            solvers.forEach(solver => {
+                const row = document.createElement('div');
+                row.className = 'pending-row';
+                row.dataset.questId = q.id;
+                row.dataset.heroId  = solver;
+                row.innerHTML = `
+                    <div class="pending-info">
+                        <div class="pending-title">${solvers.length === 1 ? titleHtml : `↳ solução de <strong>${solver}</strong>`}</div>
+                        <div class="pending-meta">
+                            Hero: <span class="pending-hero">${solver}</span>
+                            · ${skills}
+                            · <span class="pending-xp">+${q.xpReward} XP</span>
+                        </div>
+                    </div>
+                    <div class="pending-actions">
+                        <button class="solutions-toggle" onclick="toggleSolutions('${q.id}', this)">▾ Ver respostas</button>
+                        <button class="btn btn-approve" onclick="approveQuest('${q.id}', '${solver}', this)">✓ Aprovar</button>
+                    </div>`;
+                list.appendChild(row);
+
+                const panel = document.createElement('div');
+                panel.className = 'solutions-panel';
+                panel.dataset.questId = q.id;
+                panel.innerHTML = '<div class="solutions-loading">Carregando respostas...</div>';
+                list.appendChild(panel);
+            });
+        });
+    }
+
+    async function toggleSolutions(questId, btn) {
+        const panel = btn.closest('.pending-row').nextElementSibling;
+        if (!panel || !panel.classList.contains('solutions-panel')) return;
+
+        const opening = !panel.classList.contains('open');
+        panel.classList.toggle('open');
+        btn.textContent = opening ? '▴ Ocultar respostas' : '▾ Ver respostas';
+
+        if (opening && !panel.dataset.loaded) {
+            panel.dataset.loaded = 'true';
+            try {
+                const res = await fetch(`/api/quests/${encodeURIComponent(questId)}/comments`);
+                panel.innerHTML = '';
+                if (!res.ok) { panel.innerHTML = '<div class="solutions-loading">Erro ao carregar respostas.</div>'; return; }
+                const comments = await res.json();
+                if (!comments || comments.length === 0) {
+                    panel.innerHTML = '<div class="solutions-loading">Nenhum comentário encontrado na issue.</div>';
+                    return;
+                }
+                const solver = panel.previousElementSibling?.dataset.heroId || '';
+                comments.forEach((c, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'solution-comment';
+                    div.dataset.rawBody = c.body;
+                    const date = c.createdAt
+                        ? new Date(c.createdAt).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+                        : '';
+                    div.innerHTML = `
+                        <div class="solution-meta">
+                            <span class="solution-author">@${c.author}</span>
+                            <span class="solution-ts">${date}</span>
+                            <span class="solution-seq">resposta ${i + 1}</span>
+                            <button class="btn btn-ghost btn-sm rereview-btn"
+                                style="font-size:11px;padding:2px 8px;"
+                                onclick="requestRereviewFromComment('${questId}','${solver}',this)">↺ Solicitar revisão</button>
+                            <button class="btn btn-approve approve-inline"
+                                onclick="approveFromComment('${questId}','${solver}',this)">✓ Aprovar esta</button>
+                        </div>
+                        <div class="solution-body">${escapeHtml(c.body)}</div>`;
+                    panel.appendChild(div);
+                });
+            } catch (e) {
+                panel.innerHTML = '<div class="solutions-loading">Falha ao carregar respostas.</div>';
+            }
+        }
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    async function approveFromComment(questId, heroId, btn) {
+        const panel = btn.closest('.solutions-panel');
+        panel?.querySelectorAll('.approve-inline').forEach(b => { b.disabled = true; });
+        const outerBtn = panel?.previousElementSibling?.querySelector('.btn-approve:not(.approve-inline)');
+        if (outerBtn) outerBtn.disabled = true;
+        btn.textContent = 'Aprovando...';
+        await approveQuest(questId, heroId, btn);
+    }
+
+    async function requestRereviewFromComment(questId, heroId, btn) {
+        const solution = btn.closest('.solution-comment')?.dataset.rawBody || '';
+        if (!solution) { btn.textContent = '↺ sem conteúdo'; return; }
+        btn.disabled = true;
+        btn.textContent = '↺ Enviando...';
+        try {
+            const res = await fetch(`/api/routing/${encodeURIComponent(questId)}/rereview`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ heroId, solution })
+            });
+            if (res.ok) {
+                btn.textContent = '↺ Enviado';
+                btn.classList.add('sent');
+            } else {
+                btn.textContent = '↺ Erro';
+                btn.disabled = false;
+            }
+        } catch (e) {
+            btn.textContent = '↺ Erro';
+            btn.disabled = false;
+        }
+    }
+
+    async function approveQuest(questId, heroId, btn) {
+        btn.disabled = true;
+        btn.textContent = 'Aprovando...';
+        const list    = document.getElementById('pending-review-list');
+        const section = document.getElementById('pending-review-section');
+        try {
+            const res = await fetch(`/api/routing/${encodeURIComponent(questId)}/approve?heroId=${encodeURIComponent(heroId)}`, { method: 'POST' });
+            const d   = await res.json();
+            if (d.approved) {
+                btn.textContent = '✓ Aprovado';
+                btn.classList.add('approved');
+                addEvent('DONE', `${questId} → ${d.heroId} · skills validadas + XP creditado`);
+                list.querySelectorAll(`.pending-row[data-quest-id="${questId}"] .btn-approve`).forEach(b => {
+                    if (b !== btn) { b.disabled = true; b.textContent = '—'; b.style.opacity = '.3'; }
+                });
+                const row = btn.closest('.pending-row');
+                setTimeout(() => {
+                    row.style.opacity = '0'; row.style.transition = 'opacity .4s';
+                    setTimeout(() => {
+                        list.querySelectorAll(`[data-quest-id="${questId}"]`).forEach(el => el.remove());
+                        list.querySelector('.pending-quest-header')?.remove();
+                        if (!list.querySelector('.pending-row')) section.style.display = 'none';
+                    }, 400);
+                }, 1200);
+            } else {
+                btn.textContent = d.reason || 'Erro';
+                btn.classList.add('err');
+                btn.disabled = false;
+            }
+        } catch (e) {
+            btn.textContent = 'Falhou';
+            btn.disabled = false;
+        }
+    }
+
+    // ── Hero Activity ─────────────────────────────────────────────────────────
+    async function loadHeroActivity(heroId) {
+        const container = document.getElementById('activity-' + heroId);
+        if (!container || container.dataset.loaded) return;
+        container.dataset.loaded = 'true';
+        container.querySelector('.activity-loading')?.remove();
+
+        try {
+            const [actRes, qRes] = await Promise.all([
+                fetch(`/api/heroes/${encodeURIComponent(heroId)}/activity`),
+                fetch(`/api/heroes/${encodeURIComponent(heroId)}/quests`)
+            ]);
+
+            if (qRes.ok) {
+                const q = await qRes.json();
+                const active = [
+                    ...(q.inProgress    || []).map(q => ({ ...q, _state: 'in-progress' })),
+                    ...(q.pendingReview || []).map(q => ({ ...q, _state: 'pending-review' }))
+                ];
+                if (active.length > 0) {
+                    const hdr = document.createElement('div');
+                    hdr.className = 'activity-header';
+                    hdr.textContent = 'Ativas';
+                    container.appendChild(hdr);
+                    active.forEach(q => {
+                        const div = document.createElement('div');
+                        div.className = 'activity-entry';
+                        const stateColor = q._state === 'pending-review' ? 'var(--amber)' : 'var(--blue)';
+                        const stateLabel = q._state === 'pending-review' ? 'aguardando aprovação' : 'em andamento';
+                        const titleHtml  = q.url
+                            ? `<a href="${q.url}" target="_blank" rel="noopener" class="activity-qtitle">${q.title}</a>`
+                            : `<span class="activity-qtitle">${q.title}</span>`;
+                        div.innerHTML = `
+                            <span class="activity-qid">${q.id}</span>
+                            ${titleHtml}
+                            <span class="activity-xp">+${q.xpReward} XP</span>
+                            <span class="activity-conf" style="color:${stateColor}">${stateLabel}</span>`;
+                        container.appendChild(div);
+                    });
+                }
+            }
+
+            if (actRes.ok) {
+                const entries = await actRes.json();
+                if (entries && entries.length > 0) {
+                    const hdr = document.createElement('div');
+                    hdr.className = 'activity-header';
+                    hdr.style.marginTop = '8px';
+                    hdr.textContent = 'Concluídas';
+                    container.appendChild(hdr);
+                    entries.forEach(e => {
+                        const div = document.createElement('div');
+                        div.className = 'activity-entry';
+                        const date = e.completedAt ? new Date(e.completedAt).toLocaleDateString('pt-BR') : '';
+                        div.innerHTML = `
+                            <span class="activity-qid" title="${date}">${e.questId}</span>
+                            <span class="activity-qtitle" title="${e.questTitle}">${e.questTitle}</span>
+                            <span class="activity-xp">+${e.xp} XP</span>
+                            <span class="activity-conf">${e.confidencePct}%</span>`;
+                        container.appendChild(div);
+                    });
+                } else if (!container.querySelector('.activity-entry')) {
+                    const empty = document.createElement('div');
+                    empty.className = 'activity-empty';
+                    empty.textContent = 'Nenhuma quest concluída ainda.';
+                    container.appendChild(empty);
+                }
+            }
+        } catch (err) {}
+    }
+
+    // ── SSE ───────────────────────────────────────────────────────────────────
+    const feed      = document.getElementById('event-feed');
+    const sseDot    = document.getElementById('sse-dot');
+    const sseStatus = document.getElementById('sse-status');
+    const es        = new EventSource('/events');
+
+    es.onopen  = () => { sseDot.className = 'sse-dot live'; sseStatus.textContent = 'ao vivo'; };
+    es.onerror = () => { sseDot.className = 'sse-dot err';  sseStatus.textContent = 'desconectado'; };
+
+    es.addEventListener('GUILD_STATE', e => {
+        const d = JSON.parse(e.data);
+        addEvent('HUB', `${d.heroes} heróis · ${d.openQuests} quests abertas · ${d.totalXp} XP total`);
+    });
+    es.addEventListener('HERO_JOINED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('JOIN', `${d.heroName} (${d.heroId}) registrado — issue #${d.issueNumber}`);
+        setTimeout(() => location.reload(), 3000);
+    });
+    es.addEventListener('QUEST_UNLOCKED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('QUEST', `[${d.rarity}] ${d.title} — +${d.xpReward} XP`);
+    });
+    es.addEventListener('FORK_DISCOVERED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('FORK', `Fork de @${d.forkOwner} — ${d.heroName} aguarda validação (issue #${d.issueNumber})`);
+    });
+    es.addEventListener('SOLUTION_RECEIVED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('SOLUTION', `${d.heroName} → ${d.questId} · ${Math.round(d.confidence * 100)}% confiança`);
+        setTimeout(loadPendingReview, 1500);
+    });
+    es.addEventListener('HERO_ONLINE', e => {
+        const d = JSON.parse(e.data);
+        setPresence(d.heroId, true);
+        addEvent('ONLINE', `${d.heroName} está online`);
+        loadRoutingTable();
+    });
+    es.addEventListener('HERO_OFFLINE', e => {
+        const d = JSON.parse(e.data);
+        setPresence(d.heroId, false);
+        addEvent('OFFLINE', `${d.heroName} foi offline`);
+        loadRoutingTable();
+    });
+    es.addEventListener('QUEST_ROUTED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('ROUTE', `${d.questTitle} → ${d.heroName} via ${d.routingKey}`);
+        const btn = document.querySelector(`.btn-dispatch[onclick*="${d.questId}"]`);
+        if (btn) { btn.textContent = '✓ Enviado'; btn.classList.add('sent'); btn.disabled = true; }
+    });
+    es.addEventListener('QUEST_COMPLETED', e => {
+        const d = JSON.parse(e.data);
+        addEvent('DONE', `${d.questId} · ${d.heroId} · +${d.xpReward} XP`);
+        document.querySelector(`.pending-row[data-quest-id="${d.questId}"]`)?.remove();
+        const open = document.getElementById('stat-openQuests');
+        const done = document.getElementById('stat-completedQuests');
+        if (open) open.textContent = Math.max(0, (parseInt(open.textContent) || 0) - 1);
+        if (done) done.textContent = (parseInt(done.textContent) || 0) + 1;
+        const act = document.getElementById('activity-' + d.heroId);
+        if (act) delete act.dataset.loaded;
+    });
+    es.addEventListener('SKILL_AUTO_VALIDATED', e => {
+        const d = JSON.parse(e.data);
+        d.skills.forEach(skill => markValidated(d.heroId, skill));
+        const row = document.querySelector(`.rank-row[data-hero-id="${CSS.escape(d.heroId)}"]`);
+        if (row && d.xp !== undefined) row.querySelector('.hero-xp').textContent = d.xp + ' XP';
+        if (d.totalXp !== undefined) document.getElementById('stat-totalXp').textContent = d.totalXp;
+        addEvent('SKILL', `${d.heroId}: "${d.skills.join(', ')}" validada ✓ · ${d.xp} XP`);
+    });
+
+    document.querySelectorAll('.rank-row').forEach(row => {
+        row.addEventListener('click', () => toggleDrawer(row.dataset.heroId));
+    });
+
+    function toggleDrawer(heroId) {
+        const drawer = document.getElementById('drawer-' + heroId);
+        if (!drawer) return;
+        const opening = !drawer.classList.contains('open');
+        drawer.classList.toggle('open');
+        if (opening) loadHeroActivity(heroId);
+    }
+
+    async function validateSkill(event, btn) {
+        event.stopPropagation();
+        const heroId = btn.dataset.heroId;
+        const skill  = btn.dataset.skill;
+        btn.textContent = 'Enviando...';
+        btn.disabled = true;
+        try {
+            const res  = await fetch(`/api/heroes/${heroId}/skills/${skill}/validate`, { method: 'POST' });
+            const data = await res.json();
+            if (res.status === 202) {
+                btn.textContent = 'Aguardando...';
+            } else if (res.ok && data.message === 'já validada') {
+                markValidated(heroId, skill);
+            } else {
+                btn.textContent = data.error || 'Erro';
+                btn.classList.add('err');
+                btn.disabled = false;
+            }
+        } catch {
+            btn.textContent = 'Falhou';
+            btn.classList.add('err');
+            btn.disabled = false;
+        }
+    }
+
+    async function resetSkill(event, btn) {
+        event.stopPropagation();
+        const heroId = btn.dataset.heroId;
+        const skill  = btn.dataset.skill;
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/api/heroes/${heroId}/skills/${skill}/validate`, { method: 'DELETE' });
+            if (res.ok) {
+                const entry = btn.closest('.skill-entry');
+                entry.querySelector('.skill-pill-sm')?.classList.remove('validated');
+                entry.querySelector('.val-check')?.remove();
+                btn.remove();
+                const vBtn = document.createElement('button');
+                vBtn.className = 'validate-btn';
+                vBtn.dataset.heroId = heroId;
+                vBtn.dataset.skill  = skill;
+                vBtn.textContent    = 'validar';
+                vBtn.setAttribute('onclick', 'validateSkill(event, this)');
+                entry.appendChild(vBtn);
+                addEvent('RESET', `validação de "${skill}" removida para ${heroId}`);
+            } else {
+                btn.disabled = false;
+            }
+        } catch {
+            btn.disabled = false;
+        }
+    }
+
+    function markValidated(heroId, skill) {
+        const btn = document.querySelector(`.validate-btn[data-hero-id="${CSS.escape(heroId)}"][data-skill="${CSS.escape(skill)}"]`);
+        if (!btn) return;
+        btn.textContent = '✓ validada';
+        btn.classList.add('done');
+        btn.previousElementSibling?.classList.add('validated');
+    }
+
+    function setPresence(heroId, online) {
+        const row = document.querySelector(`.rank-row[data-hero-id="${CSS.escape(heroId)}"]`);
+        if (!row) return;
+        const dot = row.querySelector('.presence-dot');
+        if (dot) { dot.classList.toggle('online', online); dot.title = online ? 'Online' : 'Offline'; }
+    }
+
+    const BADGE_MAP = {
+        HUB: 'ev-hub', ONLINE: 'ev-online', OFFLINE: 'ev-offline', JOIN: 'ev-join',
+        QUEST: 'ev-quest', SOLUTION: 'ev-solution', DONE: 'ev-done', SKILL: 'ev-skill',
+        FORK: 'ev-fork', RESET: 'ev-reset', ROUTE: 'ev-route'
+    };
+
+    function addEvent(type, msg) {
+        const t = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        const div = document.createElement('div');
+        div.className = 'event-item';
+        div.innerHTML = `
+            <span class="event-time">${t}</span>
+            <span class="ev-badge ${BADGE_MAP[type] || 'ev-default'}">${type}</span>
+            <span class="event-msg">${msg}</span>`;
+        feed.querySelector('.event-empty')?.remove();
+        feed.prepend(div);
+    }
+</script>
+</body>
+</html>

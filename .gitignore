@@ -33,6 +33,7 @@ target/
 .vscode/
 *.swp
 out/
+*/web/WEB-INF/
 
 # Local config overrides (keep manifest.json tracked as template)
 application-local.yml

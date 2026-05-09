@@ -34,6 +34,17 @@ public class HubDashboardController {
 
     @GetMapping("/")
     public String dashboard(Model model) {
+        populateModel(model);
+        return "hub";
+    }
+
+    @GetMapping("/v2")
+    public String dashboardV2(Model model) {
+        populateModel(model);
+        return "dashboard-v2";
+    }
+
+    private void populateModel(Model model) {
         model.addAttribute("heroCount",       registry.getHeroCount());
         model.addAttribute("totalXp",         registry.getTotalXp());
         model.addAttribute("openQuests",      questBoard.getOpenCount());
@@ -43,7 +54,6 @@ public class HubDashboardController {
         model.addAttribute("questsByRarity",  questBoard.getCountByRarity());
         model.addAttribute("lastFetchMs",     registry.getLastFetchMs());
         model.addAttribute("onlineHeroes",    presence != null ? presence.getOnlineHeroes() : Set.of());
-        return "hub";
     }
 
     @GetMapping(value = "/events", produces = "text/event-stream")
