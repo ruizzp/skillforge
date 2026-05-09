@@ -1,38 +1,38 @@
 @baseUrl = http://localhost:8080
 
-### AMQP diagnostics — exchange, vhost, host, queue existence
+### ──────────────────────────────────────────────────────────────────────────
+# DIAGNÓSTICO
+### ──────────────────────────────────────────────────────────────────────────
+
+### AMQP — exchange, vhost, host, filas configuradas
 GET {{baseUrl}}/api/amqp-info
 
 ###
 
-### Heroes online agora
-GET {{baseUrl}}/api/presence
+### Health check
+GET {{baseUrl}}/api/health
 
 ###
 
-### Tabela de roteamento (quests × heroes × skills)
-GET {{baseUrl}}/api/routing
+### Stats completos da guilda (heroCount, totalXp, quests por raridade…)
+GET {{baseUrl}}/api/stats
 
 ###
 
-### Forçar sync com GitHub (sem esperar ciclo de 5min)
+### Forçar sync com GitHub (sem esperar ciclo de 5 min)
 POST {{baseUrl}}/api/refresh
 
-###
-
-### Despachar quest para o hero eleito
-# Substituir QUEST-001 pelo questId retornado em /api/routing
-POST {{baseUrl}}/api/routing/QUEST-001/dispatch
-
-###
-
-### Aprovar solução: fecha issue, label 'completed', valida skills, credita XP
-POST {{baseUrl}}/api/routing/QUEST-001/approve
-
-###
+### ──────────────────────────────────────────────────────────────────────────
+# HEROES
+### ──────────────────────────────────────────────────────────────────────────
 
 ### Listar todos os heróis registrados
 GET {{baseUrl}}/api/heroes
+
+###
+
+### Herói específico por heroId
+GET {{baseUrl}}/api/heroes/hero-marketing
 
 ###
 
@@ -41,10 +41,156 @@ GET {{baseUrl}}/api/leaderboard
 
 ###
 
+### Heroes online agora (presença via heartbeat)
+GET {{baseUrl}}/api/presence
+
+###
+
+### Histórico de quests de um herói (ativas + concluídas)
+GET {{baseUrl}}/api/heroes/hero-marketing/quests
+
+###
+
+### Actividade do herói (portfolio — comentários de quest-completion na issue)
+GET {{baseUrl}}/api/heroes/hero-marketing/activity
+
+### ──────────────────────────────────────────────────────────────────────────
+# QUESTS
+### ──────────────────────────────────────────────────────────────────────────
+
+### Todas as quests
+GET {{baseUrl}}/api/quests
+
+###
+
 ### Quests abertas
 GET {{baseUrl}}/api/quests?status=open
 
 ###
 
-### Stats da guilda
-GET {{baseUrl}}/api/stats
+### Quests concluídas
+GET {{baseUrl}}/api/quests?status=completed
+
+###
+
+### Quests aguardando revisão humana (solved-by label presente)
+GET {{baseUrl}}/api/quests?status=pending-review
+
+###
+
+### Quests por raridade
+GET {{baseUrl}}/api/quests?rarity=RARE
+
+###
+
+### Comentários de uma quest (soluções submetidas na issue)
+GET {{baseUrl}}/api/quests/QUEST-001/comments
+
+###
+
+### Criar nova quest
+# Requer GITHUB_TOKEN configurado no hub
+POST {{baseUrl}}/api/quests
+Content-Type: application/json
+
+{
+  "title": "Título da quest",
+  "body": "## Contexto\n...\n\n## Definition of Done\n- [ ] critério 1",
+  "rarity": "RARE",
+  "xpReward": 200,
+  "requiredSkills": ["marketing", "copywriting"]
+}
+
+### ──────────────────────────────────────────────────────────────────────────
+# ROTEAMENTO & DESPACHO
+### ──────────────────────────────────────────────────────────────────────────
+
+### Tabela de roteamento: quests abertas × heroes online × skills
+GET {{baseUrl}}/api/routing
+
+###
+
+### Despachar quest para o hero eleito (publica ProblemMessage via AMQP)
+# Substituir QUEST-001 pelo questId retornado em /api/routing
+POST {{baseUrl}}/api/routing/QUEST-001/dispatch
+
+###
+
+### Aprovar solução manualmente
+# Fecha issue, adiciona label 'completed', valida skills, credita XP ao hero
+# Idempotente: segunda chamada é no-op se xp-source:QUEST-001 já existe na issue
+POST {{baseUrl}}/api/routing/QUEST-001/approve?heroId=hero-marketing
+
+###
+
+### Forçar re-revisão automática (re-publica ReviewMessage para o hero-reviewer)
+# Útil quando a revisão automática falhou ou o threshold não foi atingido
+POST {{baseUrl}}/api/routing/QUEST-001/rereview
+Content-Type: application/json
+
+{
+  "heroId": "hero-marketing",
+  "solution": "conteúdo da solução (opcional — se omitido, busca último comentário da issue)"
+}
+
+### ──────────────────────────────────────────────────────────────────────────
+# XP — CRÉDITO MANUAL (retroativo / correção)
+### ──────────────────────────────────────────────────────────────────────────
+# Todos os endpoints abaixo usam labels de idempotência no GitHub:
+#   xp-source:{questId}  → guard para XP de quest (hero solver)
+#   reviewed:{questId}   → guard para XP de revisão (hero reviewer)
+# Segunda chamada com o mesmo questId retorna {"credited": false} sem alterar o contador.
+
+### Creditar XP de quest ao hero solver
+# Use quando a quest foi concluída antes do fix de idempotência e o hero não recebeu XP.
+POST {{baseUrl}}/api/heroes/hero-marketing/credit-xp
+Content-Type: application/json
+
+{
+  "questId": "QUEST-001",
+  "amount": 650
+}
+
+###
+
+### Creditar XP de revisão ao hero reviewer
+# Use quando o ReviewResultConsumer.handleApproved não creditou XP ao reviewer.
+# role=reviewer ativa o guard reviewed:{questId} em vez de xp-source:{questId}.
+POST {{baseUrl}}/api/heroes/hero-reviewer/credit-xp
+Content-Type: application/json
+
+{
+  "questId": "QUEST-001",
+  "amount": 50,
+  "role": "reviewer"
+}
+
+###
+
+### Verificar se o XP foi creditado (olhar labels da issue do hero no GitHub)
+# Confirma presença dos labels xp-source:QUEST-001 e reviewed:QUEST-001
+GET {{baseUrl}}/api/heroes/hero-marketing
+
+### ──────────────────────────────────────────────────────────────────────────
+# SKILLS
+### ──────────────────────────────────────────────────────────────────────────
+
+### Validar skill manualmente (envia desafio via AMQP; SolutionConsumer valida resposta)
+POST {{baseUrl}}/api/heroes/hero-marketing/skills/marketing/validate
+
+###
+
+### Remover validação de skill (descredita XP_PER_SKILL = 150 XP)
+DELETE {{baseUrl}}/api/heroes/hero-marketing/skills/marketing/validate
+
+### ──────────────────────────────────────────────────────────────────────────
+# FORKS
+### ──────────────────────────────────────────────────────────────────────────
+
+### Listar forks detectados
+GET {{baseUrl}}/api/forks
+
+###
+
+### Forçar scan de novos forks no GitHub
+POST {{baseUrl}}/api/forks/scan

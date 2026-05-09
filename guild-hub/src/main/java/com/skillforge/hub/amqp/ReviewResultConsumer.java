@@ -29,6 +29,9 @@ public class ReviewResultConsumer {
     @Value("${guild.reviewer.max-revisions:3}")
     private int maxRevisions;
 
+    @Value("${guild.reviewer.xp-reward-fraction:0.25}")
+    private double reviewerXpFraction;
+
     public ReviewResultConsumer(HeroRegistryService registry, QuestBoardService questBoard,
                                 GitHubClient github, HubDashboardController dashboard,
                                 RabbitTemplate rabbit) {
@@ -76,12 +79,38 @@ public class ReviewResultConsumer {
                     quest.id(), e.getMessage());
         }
 
+        creditReviewerXp(quest, result);
+
         // Refresh cache after labels are set so the dashboard reads the updated state
         questBoard.refresh();
 
         dashboard.broadcast("SOLUTION_REVIEWED",
                 "{\"questId\":\"%s\",\"heroId\":\"%s\",\"approved\":true,\"score\":%.2f}"
                         .formatted(result.questId(), result.heroId(), result.reviewScore()));
+    }
+
+    private void creditReviewerXp(Quest quest, ReviewResultMessage result) {
+        if (result.reviewerId() == null || result.reviewerId().isBlank()) return;
+        int xp = quest.xpReward() > 0
+                ? Math.max(1, (int) Math.round(quest.xpReward() * reviewerXpFraction))
+                : 0;
+        if (xp <= 0) return;
+
+        registry.getHeroById(result.reviewerId()).ifPresent(reviewer -> {
+            try {
+                boolean credited = github.addReviewerXp(reviewer.issueNumber(), quest.id(), xp);
+                if (credited) {
+                    log.info("Reviewer XP creditado: +{} para {} (quest {}).",
+                            xp, result.reviewerId(), result.questId());
+                } else {
+                    log.info("Reviewer XP ignorado (já creditado): {} para {}.",
+                            result.questId(), result.reviewerId());
+                }
+            } catch (Exception e) {
+                log.error("Falha ao creditar XP do reviewer {} para quest {}: {}",
+                        result.reviewerId(), result.questId(), e.getMessage());
+            }
+        });
     }
 
     private void handleRevisionRequested(Quest quest, ReviewResultMessage result) {
@@ -131,7 +160,4 @@ public class ReviewResultConsumer {
                         .formatted(result.questId(), result.heroId()));
     }
 
-    private static String normalizeSkill(String skill) {
-        return skill.toLowerCase().replace(' ', '-').trim();
-    }
 }

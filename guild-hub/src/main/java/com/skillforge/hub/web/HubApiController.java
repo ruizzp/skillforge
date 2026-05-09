@@ -300,6 +300,37 @@ public class HubApiController {
 
     public record RereviewRequest(String heroId, String solution) {}
 
+    /**
+     * Credita XP manualmente para um hero em relação a uma quest — idempotente.
+     * Útil para quests já fechadas que não receberam XP devido a bug anterior.
+     * Usa addQuestXp (label xp-source:{questId}) como guard contra double-credit.
+     * Para reviewer: role=reviewer credita com addReviewerXp (label reviewed:{questId}).
+     */
+    @PostMapping("/heroes/{heroId}/credit-xp")
+    public ResponseEntity<?> creditXp(@PathVariable String heroId,
+                                      @RequestBody CreditXpRequest req) {
+        var hero = registry.getHeroById(heroId);
+        if (hero.isEmpty()) return ResponseEntity.notFound().build();
+
+        try {
+            boolean credited = "reviewer".equals(req.role())
+                ? github.addReviewerXp(hero.get().issueNumber(), req.questId(), req.amount())
+                : github.addQuestXp(hero.get().issueNumber(), req.questId(), req.amount());
+
+            return ResponseEntity.ok(Map.of(
+                "credited", credited,
+                "heroId",   heroId,
+                "questId",  req.questId(),
+                "amount",   req.amount(),
+                "message",  credited ? "XP creditado." : "Já creditado anteriormente (no-op)."
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    public record CreditXpRequest(String questId, int amount, String role) {}
+
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh() {
         registry.refresh();

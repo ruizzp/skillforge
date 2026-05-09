@@ -7,5 +7,6 @@ public record ReviewResultMessage(
     String feedback,         // actionable feedback if not approved
     double reviewScore,      // 0.0–1.0 reviewer confidence
     int revisionCount,
-    String reviewerModel
+    String reviewerModel,
+    String reviewerId        // heroId of the reviewing node (for XP credit)
 ) {}

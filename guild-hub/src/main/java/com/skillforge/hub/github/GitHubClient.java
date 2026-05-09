@@ -267,9 +267,8 @@ public class GitHubClient {
             "confidence", confidencePct,
             "completedAt", Instant.now().toString()
         ));
-        String skillsFormatted = skills.stream()
-            .map(s -> "`" + s + "`")
-            .collect(Collectors.joining(", "));
+        String skillsFormatted = skills.isEmpty() ? "—"
+            : skills.stream().map(s -> "`" + s + "`").collect(Collectors.joining(", "));
         String body = """
             <!-- quest-completion: %s -->
             ## ⚔️ Quest Completada — %s
@@ -332,14 +331,14 @@ public class GitHubClient {
         post(url, mapper.writeValueAsString(Map.of("labels", List.of(label))));
     }
 
-    public void validateSkill(int issueNumber, String skill, String validatedBy) throws Exception {
+    public synchronized void validateSkill(int issueNumber, String skill, String validatedBy) throws Exception {
         addLabel(issueNumber, "skill-validated:" + skill);
         updateXp(issueNumber, XP_PER_SKILL);
         String comment = "✓ **Skill `%s` validada** por @%s. +%d XP".formatted(skill, validatedBy, XP_PER_SKILL);
         postComment(issueNumber, comment);
     }
 
-    public void removeSkillValidation(int issueNumber, String skill) throws Exception {
+    public synchronized void removeSkillValidation(int issueNumber, String skill) throws Exception {
         requireToken("removeSkillValidation");
         String label = "skill-validated:" + skill;
         delete("%s/repos/%s/%s/issues/%d/labels/%s"
@@ -347,8 +346,42 @@ public class GitHubClient {
         updateXp(issueNumber, -XP_PER_SKILL);
     }
 
-    public void addXp(int issueNumber, int amount) throws Exception {
-        updateXp(issueNumber, amount);
+    /**
+     * Credita XP de conclusão de quest de forma idempotente.
+     * Usa label xp-source:{questId} como chave de deduplicação — segunda chamada é no-op.
+     * Retorna true se o XP foi creditado agora, false se já havia sido creditado antes.
+     */
+    public synchronized boolean addQuestXp(int issueNumber, String questId, int amount) throws Exception {
+        requireToken("addQuestXp");
+        String idempotencyLabel = "xp-source:" + questId;
+
+        JsonNode issue = get("%s/repos/%s/%s/issues/%d".formatted(API, owner, repo, issueNumber));
+        for (JsonNode label : issue.path("labels")) {
+            if (idempotencyLabel.equals(label.path("name").asText())) return false;
+        }
+
+        addLabel(issueNumber, idempotencyLabel);
+        if (amount > 0) updateXpFromIssue(issue, amount);
+        return true;
+    }
+
+    /**
+     * Credita XP de revisão de forma idempotente.
+     * Usa label reviewed:{questId} como chave de deduplicação.
+     * Retorna true se o XP foi creditado agora, false se já havia sido creditado antes.
+     */
+    public synchronized boolean addReviewerXp(int issueNumber, String questId, int amount) throws Exception {
+        requireToken("addReviewerXp");
+        String idempotencyLabel = "reviewed:" + questId;
+
+        JsonNode issue = get("%s/repos/%s/%s/issues/%d".formatted(API, owner, repo, issueNumber));
+        for (JsonNode label : issue.path("labels")) {
+            if (idempotencyLabel.equals(label.path("name").asText())) return false;
+        }
+
+        addLabel(issueNumber, idempotencyLabel);
+        if (amount > 0) updateXpFromIssue(issue, amount);
+        return true;
     }
 
     private static final List<String> QUEST_STATUS_LABELS =
@@ -386,7 +419,12 @@ public class GitHubClient {
     private void updateXp(int issueNumber, int delta) throws Exception {
         requireToken("updateXp");
         JsonNode issue = get("%s/repos/%s/%s/issues/%d".formatted(API, owner, repo, issueNumber));
+        updateXpFromIssue(issue, delta);
+    }
 
+    // Variante que reutiliza um issue já carregado — evita GET duplicado em addQuestXp/addReviewerXp.
+    private void updateXpFromIssue(JsonNode issue, int delta) throws Exception {
+        int issueNumber = issue.path("number").asInt();
         int current = 0;
         String existing = null;
         for (JsonNode label : issue.path("labels")) {

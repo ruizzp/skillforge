@@ -22,12 +22,15 @@ public class QuestReviewService {
     private final OllamaClient ollamaClient;
     private final ObjectMapper mapper;
     private final String systemPrompt;
+    private final String heroId;
 
     @Value("${skillforge.reviewer.approval-threshold:0.70}")
     private double approvalThreshold;
 
-    public QuestReviewService(OllamaClient ollamaClient) throws IOException {
+    public QuestReviewService(OllamaClient ollamaClient,
+                              @Value("${skillforge.hero.id:hero-reviewer}") String heroId) throws IOException {
         this.ollamaClient = ollamaClient;
+        this.heroId       = heroId;
         this.mapper       = new ObjectMapper();
         this.systemPrompt = loadSystemPrompt();
     }
@@ -48,7 +51,8 @@ public class QuestReviewService {
                     "",
                     0.5,
                     msg.revisionCount(),
-                    ollamaClient.getModel() + " (auto-approved: no DoD)"
+                    ollamaClient.getModel() + " (auto-approved: no DoD)",
+                    heroId
             );
         }
 
@@ -66,7 +70,8 @@ public class QuestReviewService {
                     "",
                     0.5,
                     msg.revisionCount(),
-                    "auto-approved (ollama unavailable)"
+                    "auto-approved (ollama unavailable)",
+                    heroId
             );
         }
 
@@ -151,7 +156,8 @@ public class QuestReviewService {
                     feedback,
                     score,
                     msg.revisionCount(),
-                    ollamaClient.getModel()
+                    ollamaClient.getModel(),
+                    heroId
             );
 
         } catch (Exception e) {
@@ -165,7 +171,8 @@ public class QuestReviewService {
                     "",
                     0.5,
                     msg.revisionCount(),
-                    ollamaClient.getModel() + " (auto-approved: parse error)"
+                    ollamaClient.getModel() + " (auto-approved: parse error)",
+                    heroId
             );
         }
     }

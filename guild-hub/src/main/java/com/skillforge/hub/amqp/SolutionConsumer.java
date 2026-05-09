@@ -143,26 +143,26 @@ public class SolutionConsumer {
         }
 
         // XP + portfolio entry (apenas quests reais)
-        if (!msg.questId().startsWith("probe:") && !validated.isEmpty()) {
+        if (!msg.questId().startsWith("probe:")) {
             questBoard.getQuests().stream()
                     .filter(q -> q.id().equals(msg.questId()))
                     .findFirst()
                     .ifPresent(quest -> {
-                        if (quest.xpReward() > 0) {
-                            try {
-                                github.addXp(hero.issueNumber(), quest.xpReward());
-                                log.info("Quest XP creditado: +{} para {} (quest {}).",
-                                        quest.xpReward(), msg.heroId(), msg.questId());
-                            } catch (Exception e) {
-                                log.error("Falha ao creditar quest XP para {}: {}", msg.heroId(), e.getMessage());
-                            }
-                        }
                         try {
-                            github.postQuestCompletionComment(
-                                hero.issueNumber(), quest.id(), quest.title(),
-                                validated, quest.xpReward(), (int)(msg.confidence() * 100));
+                            boolean credited = github.addQuestXp(
+                                    hero.issueNumber(), quest.id(), quest.xpReward());
+                            if (credited) {
+                                log.info("Quest XP creditado: +{} para {} (quest {}).",
+                                        quest.xpReward(), msg.heroId(), quest.id());
+                                github.postQuestCompletionComment(
+                                        hero.issueNumber(), quest.id(), quest.title(),
+                                        validated, quest.xpReward(), (int) (msg.confidence() * 100));
+                            } else {
+                                log.info("Quest XP ignorado (já creditado): {} para {}.",
+                                        quest.id(), msg.heroId());
+                            }
                         } catch (Exception e) {
-                            log.warn("Portfolio comment falhou para {}: {}", msg.heroId(), e.getMessage());
+                            log.error("Falha ao creditar quest XP para {}: {}", msg.heroId(), e.getMessage());
                         }
                     });
         }
