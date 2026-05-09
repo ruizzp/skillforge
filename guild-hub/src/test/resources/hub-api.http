@@ -184,6 +184,26 @@ POST {{baseUrl}}/api/heroes/hero-marketing/skills/marketing/validate
 DELETE {{baseUrl}}/api/heroes/hero-marketing/skills/marketing/validate
 
 ### ──────────────────────────────────────────────────────────────────────────
+# AMQP — PUBLICAÇÃO DIRETA
+### ──────────────────────────────────────────────────────────────────────────
+
+### Publicar problema no exchange (bypassa roteamento automático)
+# Útil para testes manuais de heroes ou para reenviar uma quest sem /dispatch.
+# Routing key derivado de requiredSkills[0]: "problem.{skill}"
+POST {{baseUrl}}/api/problems
+Content-Type: application/json
+
+{
+  "questId": "QUEST-001",
+  "questTitle": "Título da quest",
+  "requiredSkills": ["marketing"],
+  "xpReward": 200,
+  "submittedBy": "hub",
+  "questUrl": "https://github.com/org/repo/issues/42",
+  "questBody": "Corpo completo da quest com DoD"
+}
+
+### ──────────────────────────────────────────────────────────────────────────
 # FORKS
 ### ──────────────────────────────────────────────────────────────────────────
 
