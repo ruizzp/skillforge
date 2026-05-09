@@ -103,6 +103,66 @@ O "estado aprovado" de um domínio ou quest é expresso pelo que **existe no rep
 
 ---
 
+## Convenções Obrigatórias
+
+### Padrão AMQP para todos os heroes
+
+Todo módulo hero Spring Boot deve usar o mesmo padrão de conexão RabbitMQ no `application.yml`.
+
+**Obrigatório:**
+
+```yaml
+spring:
+  rabbitmq:
+    addresses: ${AMQP_URL}
+    ssl:
+      enabled: ${AMQP_SSL_ENABLED:false}
+```
+
+**Não usar em heroes novos:**
+- `spring.rabbitmq.host`
+- `spring.rabbitmq.port`
+- `spring.rabbitmq.username`
+- `spring.rabbitmq.password`
+
+Motivo: padronização de deploy e configuração única por URL AMQP.
+
+---
+
+### Arquivo `.http` obrigatório para testes de API
+
+Todo hero novo deve fornecer um arquivo de teste HTTP para execução manual no IDE.
+
+**Obrigatório:**
+
+- Arquivo em `src/test/resources/`
+- Nome no formato `{hero-id}.http`
+- Deve conter, no mínimo:
+  - `GET` de health check do hero
+  - `POST` principal da API do hero com payload de exemplo válido
+
+**Objetivo:** padronizar validação rápida, onboarding e troubleshooting entre heroes.
+
+---
+
+### Convenção de branches locais
+
+Branches prefixadas com `local/` são exclusivamente locais — **nunca fazer push para o remote**.
+
+**Regra:**
+- Trabalho experimental, WIP ou heroes em desenvolvimento inicial → `local/<nome>`
+- Quando pronto para revisão/merge → renomear para `feature/<nome>` antes do push
+
+**Hook `pre-push` ativo** no repositório bloqueia automaticamente qualquer push de branch `local/*`.  
+Para publicar, renomeie primeiro:
+
+```bash
+git branch -m local/meu-hero feature/meu-hero
+git push origin feature/meu-hero
+```
+
+---
+
 ## Decisões em Aberto (Brainstorm)
 
 > Ideias aprovadas para exploração futura — não implementar sem discussão.
