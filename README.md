@@ -2,6 +2,8 @@
 
 > Transformando as habilidades de uma equipa de developers em uma guilda capaz de descobrir, desbloquear e resolver problemas de negócio em tempo real.
 
+![img_2.png](img_2.png)
+
 ---
 
 ## Navegação
@@ -48,7 +50,7 @@ O time possui capacidade. Mas não consegue usá-la como sistema.
 
 ![img.png](img.png)
 
-Esse é o ponto em que capacidade deixa de ser atributo humano e passa a ser comportamento emergente do sistema.
+> Esse é o ponto em que capacidade deixa de ser atributo humano e passa a ser comportamento emergente do sistema.
 
 ---
 
