@@ -203,3 +203,5 @@ Abra uma issue ou inicie uma discussão.
 ## Status
 
 Fase 1 em construção. Hero template funcional com dashboard web e integração GitHub API.
+
+Apresentação do projeto em [SkillForge](https://docs.google.com/presentation/d/1vWHbvu2ogMNudlQgvaOb-fZGpCl-LBP3CgbxnvFVz6U/edit?usp=sharing).
