@@ -25,13 +25,13 @@ Content-Type: application/json
 {
   "projectId":    "skillforge",
   "projectName":  "SkillForge",
-  "problem":      "Devs declaram skills no currículo mas ninguém valida. Times contratam errado. Projetos atrasam.",
-  "audiences":    ["dev senior buscando visibilidade", "CTO de startup", "angel investor em infra de IA"],
-  "differentiator": "Skills validadas por desafios reais com IA, registradas publicamente no GitHub — não por endorsements ou autodeclaração",
-  "traction":     "6 devs fundadores comprometidos. Plataforma funcional com quests geradas por IA e publicadas automaticamente no GitHub. Hero de IA operacional em produção. Meta: 50 devs beta nos primeiros 90 dias para validar retenção.",
-  "revenueModel": "Freemium: quests públicas gratuitas + guild membership pago R$ 97/mês para times de 10+ com analytics e roteamento privado de problemas",
-  "cta":          "Entre na guild de fundadores — as primeiras 50 vagas têm XP em dobro",
-  "context":      "Plataforma funcional com hub de roteamento, domínio médico em construção"
+  "problem":      "Em muitas equipas, capacidade técnica fica invisível:  - conhecimento individual não formalizado - especializações implícitas que dependem de coordenação manual - ninguém sabe exatamente o que o grupo consegue resolver agora - onboarding lento, gargalos em especialistas, baixo paralelismo O time possui capacidade. Mas não consegue usá-la como sistema.",
+  "audiences":    ["techleads", "managers", "desenvolvedores"],
+  "differentiator": "SkillForge é uma plataforma de roteamento de problemas técnicos que mapeia as habilidades e interesses dos devs para as demandas do time, usando IA para criar quests personalizadas e automáticas. Isso torna a capacidade técnica visível, acessível e utilizável como um sistema, aumentando a eficiência, o aprendizado e a satisfação dos devs.",
+  "traction":     "6 devs e um projeto piloto. Time formado por dev junior e senior, com experiência em startups e consultoria. Feedback positivo do piloto, com aumento de visibilidade e engajamento técnico.",
+  "revenueModel": "Hub com analytics e roteamento privado de problemas",
+  "cta":          "Entre na guild de fundadores — as primeiras 10 vagas têm XP em dobro",
+  "context":      "Plataforma funcional com hub de roteamento com API Claude, domínio médico em construção, Dominio tecnico Implementado, mas precisa de melhorias. O pitch deve destacar o diferencial defensável da SkillForge, que é a capacidade de mapear as habilidades e interesses dos devs para as demandas do time usando IA, criando quests personalizadas e automáticas. O pitch deve ser claro, conciso e convincente, focando nos benefícios para os techleads, managers e desenvolvedores."
 }
 
 # Esperado: valid:true, confidence >= 0.75, guildPitch e investorOnePager preenchidos

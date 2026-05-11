@@ -38,11 +38,15 @@ O time possui capacidade. Mas não consegue usá-la como sistema.
 
 ---
 
-## O momento mágico
+## Resultado esperado
 
-> "MLOracle entrou na guilda. Nova habilidade: `ml-inference`.  
-> 3 quests desbloqueadas: Previsão de Churn [RARE +350 XP],  
-> Análise de Sentimento [EPIC +700 XP], Pipeline ML [LEGENDARY +1500 XP]."
+> Esta imagem estabelece a base do conceito. Ela visualiza o Guild Hub central conectando os Nós Heróis locais. O ponto focal é o Capability Graph (Grafo de Capacidade), que transforma o conhecimento técnico — antes invisível e desconectado — em uma infraestrutura operacional visível e estruturada. Os hexágonos representam as skills, que acendem e se conectam conforme são formalizadas pelo sistema.
+
+![img_1.png](img_1.png)
+
+> Esta imagem ilustra o fluxo de execução técnica do sistema. Ela demonstra o mecanismo de Fan-Out Paralelo. Um problema técnico complexo (o artefato vermelho no portal) é submetido ao Guild Hub. O Hub, utilizando o grafo de capacidade (visto na imagem anterior), identifica e aciona simultaneamente múltiplos Nós Heróis relevantes. Vemos raios de energia ativando nós com skills específicas (java-backend, ml-inference, ci-cd). As respostas emergem em paralelo e convergem no Sintetizador para gerar a solução final.
+
+![img.png](img.png)
 
 Esse é o ponto em que capacidade deixa de ser atributo humano e passa a ser comportamento emergente do sistema.
 
