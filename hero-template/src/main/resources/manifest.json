@@ -1,9 +1,11 @@
 {
-  "heroId": "seu-hero-id",
-  "heroName": "Nome do Hero",
-  "heroClass": "Backend",
-  "skills": ["skill-1", "skill-2"],
-  "endpoint": "http://localhost:8081",
+  "heroId": "hero-observability",
+  "heroName": "Observability Hero",
+  "heroClass": "DevOps",
+  "skills": ["grafana", "loki", "prometheus", "infinity", "dashboard-design", "prompt-engineering"],
+  "endpoint": "http://localhost:8082",
   "model": "phi3:mini",
-  "specialty": "Descreva em uma frase o que este hero faz"
+  "specialty": "Cria dashboards de observabilidade integrando Grafana, Prometheus, Loki e Infinity. Valida métricas, logs e traces em tempo real com suporte a prompt engineering.",
+  "level": 1,
+  "xp": 0
 }
