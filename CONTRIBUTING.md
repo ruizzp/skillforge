@@ -15,20 +15,38 @@ Obrigado por querer melhorar a guilda. Este guia cobre o fluxo para contribuiç�
 
 ### 1. Fork e clone
 
+Quando você faz fork, o GitHub cria uma cópia do repositório na sua conta. Você passa a ter dois repositórios relacionados:
+
+| Nome | O que é | URL |
+|---|---|---|
+| `origin` | **Seu fork** — onde você commita e faz push | `github.com/SEU-USUARIO/skillforge` |
+| `upstream` | **Repo principal** — fonte da verdade do projeto | `github.com/fidelisfelipe/skillforge` |
+
+O Git não configura `upstream` automaticamente. Você precisa registrá-lo uma única vez após clonar:
+
 ```bash
 # Fork via GitHub, depois:
 git clone https://github.com/SEU-USUARIO/skillforge.git
 cd skillforge
 git remote add upstream https://github.com/fidelisfelipe/skillforge.git
+
+# Confirme que os dois remotes estão configurados:
+git remote -v
+# origin    https://github.com/SEU-USUARIO/skillforge.git (fetch)
+# upstream  https://github.com/fidelisfelipe/skillforge.git (fetch)
 ```
 
 ### 2. Sincronize com o upstream antes de começar
 
+O repo principal avança enquanto você trabalha no fork. Antes de criar uma branch, traga as novidades do `upstream` para o seu `main` local:
+
 ```bash
-git fetch upstream
+git fetch upstream          # baixa o histórico do repo principal
 git checkout main
-git merge upstream/main
+git merge upstream/main     # aplica no seu main local
 ```
+
+> `upstream/main` é a branch `main` do repositório principal, como ela estava no último `git fetch`. Não é a sua — é a deles.
 
 ### 3. Crie uma branch
 
